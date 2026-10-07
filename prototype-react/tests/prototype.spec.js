@@ -87,6 +87,7 @@ test('avatar edits save, cancel and work from a deep link', async ({ page }) => 
   await page.getByRole('button', { name: 'Edit avatar', exact: true }).click()
   await expect(page.locator('output').first()).toHaveText('Tee')
   await page.goto('/#/avatar')
+  await page.reload()
   await page.getByRole('button', { name: 'Next Top', exact: true }).click()
   await expect(page.locator('output').first()).toHaveText('Tee')
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
