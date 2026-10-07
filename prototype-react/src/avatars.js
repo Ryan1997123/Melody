@@ -21,7 +21,7 @@ export const AV_TABS = [
   { id: 'colors', label: 'Colors', rows: [], colors: [['Skin tone', 'skinColor'], ['Background', 'bg']] },
 ]
 
-export function initialAvatar(seed = 'sleeve-you') {
+export function initialAvatar(seed = 'melody-you') {
   return {
     seed, tab: 'hair', ...Object.fromEntries(features.map(feature => [feature, 0])),
     hairColor: 0, skinColor: 0, bg: 2,

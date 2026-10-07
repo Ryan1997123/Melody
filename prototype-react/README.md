@@ -1,6 +1,6 @@
-# Sleeve React Prototype
+# Melody React Prototype
 
-An independent React + JavaScript + HTML + CSS version of the 13-screen Sleeve
+An independent React + JavaScript + HTML + CSS version of the 13-screen Melody
 prototype. This folder owns its dependencies, assets, and build output. It does
 not import code from `../prototype/` or from the future production application.
 The original static prototype remains unchanged.

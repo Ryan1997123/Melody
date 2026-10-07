@@ -83,7 +83,7 @@ export function createScreenMarkup(id, S) {
   /* ---------- Template helpers ---------- */
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const val = id => esc(S.inputs[id] || '');
-  const av = (sz, extra = '', seed = 'sleeve-friend') => `<span class="av ${sz < 44 ? 'thin' : ''}" style="--sz:${sz}px" ${extra}>${personAvatarSVG(seed)}</span>`;
+  const av = (sz, extra = '', seed = 'melody-friend') => `<span class="av ${sz < 44 ? 'thin' : ''}" style="--sz:${sz}px" ${extra}>${personAvatarSVG(seed)}</span>`;
   const art = sz => `<span class="art" style="--sz:${sz}px"></span>`;
   const play = (key, cls = '') => {
     const on = S.playing === key;
@@ -101,7 +101,7 @@ export function createScreenMarkup(id, S) {
   /* ---------- Screens ---------- */
   const SCREENS = {
     signin: () => `<div class="scr"><div class="scroll signin">
-      <h1 class="h-xl">Sleeve</h1>
+      <h1 class="h-xl">Melody</h1>
       <p class="tagline">Say what songs mean to you. Share them with your friends.</p>
       <form class="card sh form" data-form="signin">
         <label class="label" for="si-email">Email</label>
@@ -253,7 +253,7 @@ export function createScreenMarkup(id, S) {
     'add-friends': () => `<div class="scr"><div class="scroll">
       <div class="title-row start"><button class="icon-btn" type="button" data-back aria-label="Back">${ic.left}</button><h1 class="h-page h-mid">Add friends</h1></div>
       ${searchBox('add-q', 'Search by @handle', 'addsearch')}
-      <section class="card sh fill invite"><span class="tt"><b>Invite friends to Sleeve</b><span>Send a link by text or any app</span></span><button class="btn" type="button" data-missing="Share link">Share link</button></section>
+      <section class="card sh fill invite"><span class="tt"><b>Invite friends to Melody</b><span>Send a link by text or any app</span></span><button class="btn" type="button" data-missing="Share link">Share link</button></section>
       <ul class="rows" id="add-list">${addRows()}</ul>
     </div></div>`,
 

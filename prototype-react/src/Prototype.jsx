@@ -9,7 +9,7 @@ function routeId() {
 }
 
 function savedRoute(id) {
-  const saved = history.state?.sleevePrototypeReact
+  const saved = history.state?.melodyPrototypeReact
   return saved && Array.isArray(saved.stack) && saved.stack.length &&
     saved.stack.every(validScreen) && saved.stack.at(-1) === id &&
     Number.isInteger(saved.index) && saved.index >= 0 && saved.index < saved.stack.length
@@ -23,7 +23,7 @@ function initialRoute() {
 }
 
 function writeHistory(method, route) {
-  history[method]({ sleevePrototypeReact: route }, '', '#/' + route.stack.at(-1))
+  history[method]({ melodyPrototypeReact: route }, '', '#/' + route.stack.at(-1))
 }
 
 export default function Prototype() {
@@ -318,7 +318,7 @@ export default function Prototype() {
         <div className="panel-head">
           <div>
             <p className="eyebrow">Lo-fi prototype</p>
-            <h1>Sleeve</h1>
+            <h1>Melody</h1>
             <p className="panel-sub">13 frames, one at a time. Tap through it like the real app, or jump to any frame here.</p>
           </div>
           <button className="panel-close" type="button" onClick={() => setPanelOpen(false)}>Done</button>

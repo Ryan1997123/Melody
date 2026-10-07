@@ -20,6 +20,8 @@ test('all 13 screens render with assets and fit the viewport', async ({ page }, 
 
 test('sign in, tabs, likes, history and reload work', async ({ page }) => {
   await page.goto('/')
+  await expect(page).toHaveTitle('Melody React Prototype')
+  await expect(page.locator('#screen h1')).toHaveText('Melody')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'discover')
   await page.getByRole('button', { name: 'Friends', exact: true }).click()
@@ -56,6 +58,7 @@ test('song drops and comments clear submitted inputs', async ({ page }) => {
 
 test('friend search, requests and messages work', async ({ page }) => {
   await page.goto('/#/add-friends')
+  await expect(page.locator('.invite b')).toHaveText('Invite friends to Melody')
   await page.getByRole('searchbox').fill('@noor')
   await expect(page.locator('#add-list > li')).toHaveCount(1)
   const request = page.locator('[data-action="addFriend"]')
