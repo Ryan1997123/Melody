@@ -326,6 +326,8 @@
     },
   };
 
+  const screenTemplates = new Map(Object.entries(SCREENS));
+
   function addRows() {
     const q = (S.inputs['add-q'] || '').replace(/^@/, '').trim().toLowerCase();
     const rows = Object.entries(S.addState).filter(([h]) => h.includes(q));
@@ -351,7 +353,7 @@
   function render(anim) {
     const id = cur();
     screen.dataset.screen = id;
-    screen.innerHTML = SCREENS[id]();
+    screen.innerHTML = screenTemplates.get(id)();
     screen.className = 'screen';
     if (anim) { void screen.offsetWidth; screen.classList.add('a-' + anim); }
     afterRender(id);
@@ -361,7 +363,7 @@
     const sc = screen.querySelector('.scroll');
     const top = sc ? sc.scrollTop : 0;
     const focusId = document.activeElement && screen.contains(document.activeElement) ? document.activeElement.id : null;
-    screen.innerHTML = SCREENS[cur()]();
+    screen.innerHTML = screenTemplates.get(cur())();
     screen.className = 'screen';
     const sc2 = screen.querySelector('.scroll');
     if (sc2) sc2.scrollTop = top;
