@@ -26,6 +26,9 @@ npx playwright install chromium
 npm test
 ```
 
+On Linux, Chromium also needs Playwright's system libraries. Install those from
+your terminal with `npx playwright install --with-deps chromium` if necessary.
+
 The browser tests start and stop their own Vite server on port 4173 and cover
 desktop/mobile rendering and interactions. Screenshots are in `test-results/`.
 
