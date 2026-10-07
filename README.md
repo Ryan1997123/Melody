@@ -6,8 +6,17 @@ Low-fidelity clickable prototype of **Sleeve**, an app for saying what songs mea
 
 Open `prototype/index.html` in a browser. Nothing to install or build.
 
-- **Desktop:** the frame list sits on the left, and one 390×844 frame is shown at a time on a grey canvas.
-- **Phone:** the frame fills the screen. Tap the blue pill at the top to open the frame list.
+- **Desktop:** one centered 390×844 phone is shown on a grey canvas, scaled down if needed.
+- **Phone:** the frame fills the viewport; content scrolls above the fixed tab bar.
+- Starts at **Sign in** unless you open a screen deep link. Review controls are hidden by default.
+
+Or serve the repository with any static server, for example:
+
+```sh
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000/prototype/`.
 
 ## The 13 frames
 
@@ -29,6 +38,25 @@ Open `prototype/index.html` in a browser. Nothing to install or build.
 
 The tab bar and the black **+** button work on every tab. Back arrows, Cancel and tapping the grey area above a sheet all go back.
 
+## Navigation and screen ids
+
+The active frame has a stable `data-screen` id. Its URL is synchronized as `#/id`,
+for example `prototype/index.html#/song`. Refresh keeps the active screen.
+The original `#song` link format also works.
+
+Navigation keeps a stack in browser history, so in-app Back and browser Back/Forward
+follow the same path, including tab switches. Direct links to detail screens and
+sheets seed their parent screens as Back destinations. Prototype data (comments,
+messages and avatar edits) is only in memory and resets on refresh.
+
+The ids are `signin`, `discover`, `friends`, `chats`, `profile`, `drop-pick`,
+`drop-why`, `song`, `send`, `conversation`, `person`, `add-friends`, and `avatar`.
+In `prototype/app.js`, `FRAMES` defines these ids and their deep-link parents,
+and `SCREENS` defines their existing markup. Buttons use `data-go="id"` to
+navigate, `data-mode="tab"` for tab transitions, and `data-back` to go back.
+To add a screen, give it a unique matching entry in both `FRAMES` and `SCREENS`
+and link to it from the UI.
+
 ## What works inside each frame
 
 - Play buttons toggle, mood chips select, likes count up and down.
@@ -39,6 +67,10 @@ The tab bar and the black **+** button work on every tab. Back arrows, Cancel an
 
 ## Review tools
 
+Press **S** (outside a text field) to enable the screen-jump menu; press it again
+to hide review tools. Alternatively open `prototype/index.html?dev` and tap the
+blue pill to open the menu. It lists every screen. These controls are opt-in.
+
 | Control | Key | What it does |
 |---------|-----|--------------|
 | Show hotspots | `H` | Outlines everything clickable in blue. Clicking a dead area flashes them briefly. |
@@ -47,9 +79,9 @@ The tab bar and the black **+** button work on every tab. Back arrows, Cancel an
 | Back | `Esc` | Same as the frame's back or Cancel. |
 | Restart | | Resets everything to Sign in. |
 
-You can link straight to a frame with its name after `#`, for example `prototype/index.html#song`.
-
 ## Files
 
-- `prototype/index.html`: the whole prototype (HTML, CSS and JS in one file)
+- `prototype/index.html`: phone container and optional review controls
+- `prototype/styles.css`: viewport layout, original lo-fi styles and transitions
+- `prototype/app.js`: screen templates, interactions and hash/history navigation (plain JavaScript, no build step)
 - `prototype/wireframes/`: the 13 source wireframes, numbered in flow order
