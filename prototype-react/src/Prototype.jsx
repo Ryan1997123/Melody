@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
 import parse, { attributesToProps } from 'html-react-parser'
-import { FRAMES, byId, TABS, SW, AVO, validScreen, initState, createScreenMarkup } from './screens.js'
+import { FRAMES, byId, TABS, validScreen, initState, createScreenMarkup } from './screens.js'
+import { AVO, AV_COLORS } from './avatars.js'
 
 function routeId() {
   const id = location.hash.replace(/^#\/?/, '')
@@ -227,7 +228,7 @@ export default function Prototype() {
       }
       case 'shuffle': {
         const lengths = Object.fromEntries(Object.entries(AVO).map(([option, values]) => [option, values.length]))
-        for (const option of ['outfitColor', 'hairColor', 'skin', 'bg']) lengths[option] = SW.length
+        for (const [option, colors] of Object.entries(AV_COLORS)) lengths[option] = colors.length
         const values = Object.fromEntries(Object.entries(lengths).map(([option, length]) => [option, Math.floor(Math.random() * length)]))
         mutate(next => { next.draft = { ...next.draft, ...values } })
         break

@@ -1,3 +1,5 @@
+import { AV_COLORS, AV_TABS, initialAvatar, avatarLabel, avatarSVG, personAvatarSVG } from './avatars.js';
+
 /* ---------- Frames ---------- */
 export const FRAMES = [
   { id: 'signin', name: 'Sign in', file: '01-sign-in.png', group: 'Start' },
@@ -41,58 +43,7 @@ const ic = {
   sun: svg('<circle cx="12" cy="12" r="3.2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>'),
   shuffle: svg('<path d="M3 7h3.5c2 0 3.2 1 4.5 3l2 4c1.3 2 2.5 3 4.5 3H21M18 14l3 3-3 3M3 17h3.5c1.2 0 2.1-.4 2.9-1.1M14.6 8.1c.8-.7 1.7-1.1 2.9-1.1H21M18 4l3 3-3 3"/>'),
 };
-const PERSON = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="38" r="18" fill="none" stroke="#8c8c8c" stroke-width="5"/><path d="M16 93a34 32 0 0 1 68 0" fill="none" stroke="#8c8c8c" stroke-width="5"/></svg>';
 const COVER = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L100 100M100 0L0 100" stroke="#aaaaaa" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg>';
-
-/* ---------- Avatar ---------- */
-export const SW = ['#ffffff', '#ebebeb', '#e0e0e0', '#c4c4c4', '#a6a6a6', '#969696', '#7a7a7a', '#5c5c5c'];
-export const AVO = {
-  top: ['Hoodie', 'Tee', 'Jacket', 'Sweater'],
-  print: ['Bear', 'None', 'Star', 'Stripes', 'Note'],
-  hair: ['None', 'Short', 'Long', 'Curly', 'Buzz'],
-  hat: ['None', 'Beanie', 'Cap', 'Bucket', 'Headphones'],
-  eyes: ['None', 'Dots', 'Happy', 'Sleepy'],
-  mouth: ['None', 'Smile', 'Grin', 'Flat'],
-  extra: ['None', 'Glasses', 'Freckles', 'Shades'],
-};
-const AV_TABS = [
-  { id: 'outfit', label: 'Outfit', rows: [['Top', 'top'], ['Print', 'print']], colors: [['Color', 'outfitColor']] },
-  { id: 'hair', label: 'Hair & hats', rows: [['Hair', 'hair'], ['Hat', 'hat']], colors: [['Color', 'hairColor']] },
-  { id: 'face', label: 'Face', rows: [['Eyes', 'eyes'], ['Mouth', 'mouth'], ['Extras', 'extra']], colors: [] },
-  { id: 'skin', label: 'Skin & bg', rows: [], colors: [['Skin', 'skin'], ['Background', 'bg']] },
-];
-function avatarSVG(a) {
-  const st = 'stroke="#8c8c8c" stroke-width="5"';
-  const ink = '#111111';
-  const hair = SW[a.hairColor], cloth = SW[a.outfitColor];
-  const v = k => AVO[k][a[k]];
-  let s = `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="${SW[a.bg]}"/>`;
-  if (v('hair') === 'Long') s += `<path d="M29 40a21 21 0 0 1 42 0v26H29z" fill="${hair}" ${st}/>`;
-  s += `<path d="M16 93a34 32 0 0 1 68 0v7H16z" fill="${cloth}"/><path d="M16 93a34 32 0 0 1 68 0" fill="none" ${st}/>`;
-  s += `<circle cx="50" cy="38" r="18" fill="${SW[a.skin]}" ${st}/>`;
-  const hr = v('hair');
-  if (hr === 'Short' || hr === 'Long') s += `<path d="M32 36a18 18 0 0 1 36 0c-6-6-12-8-18-8s-12 2-18 8z" fill="${hair}" ${st}/>`;
-  if (hr === 'Curly') s += [34, 42, 50, 58, 66].map((x, i) => `<circle cx="${x}" cy="${i % 2 ? 22 : 25}" r="6" fill="${hair}" ${st}/>`).join('');
-  if (hr === 'Buzz') s += `<path d="M33 32a18 18 0 0 1 34 0" fill="none" stroke="${hair === '#ffffff' ? '#8c8c8c' : hair}" stroke-width="6"/>`;
-  const e = v('eyes');
-  if (e === 'Dots') s += `<circle cx="43" cy="37" r="2.4" fill="${ink}"/><circle cx="57" cy="37" r="2.4" fill="${ink}"/>`;
-  if (e === 'Happy') s += `<path d="M39 38q4-5 8 0M53 38q4-5 8 0" fill="none" stroke="${ink}" stroke-width="2.2"/>`;
-  if (e === 'Sleepy') s += `<path d="M39 37h8M53 37h8" stroke="${ink}" stroke-width="2.2"/>`;
-  const m = v('mouth');
-  if (m === 'Smile') s += `<path d="M44 45q6 5 12 0" fill="none" stroke="${ink}" stroke-width="2.2"/>`;
-  if (m === 'Grin') s += `<path d="M43 44h14q-1 7-7 7t-7-7z" fill="${ink}"/>`;
-  if (m === 'Flat') s += `<path d="M45 46h10" stroke="${ink}" stroke-width="2.2"/>`;
-  const x = v('extra');
-  if (x === 'Glasses') s += `<circle cx="43" cy="37" r="5.5" fill="none" stroke="${ink}" stroke-width="2"/><circle cx="57" cy="37" r="5.5" fill="none" stroke="${ink}" stroke-width="2"/><path d="M48.5 37h3" stroke="${ink}" stroke-width="2"/>`;
-  if (x === 'Shades') s += `<path d="M36 33h12v6q-6 4-12 0zM52 33h12v6q-6 4-12 0z" fill="${ink}"/><path d="M48 34h4" stroke="${ink}" stroke-width="2"/>`;
-  if (x === 'Freckles') s += [[41, 43], [44, 45], [56, 43], [59, 45]].map(([cx, cy]) => `<circle cx="${cx}" cy="${cy}" r="1" fill="${ink}"/>`).join('');
-  const h = v('hat');
-  if (h === 'Beanie') s += `<path d="M31 30a19 19 0 0 1 38 0z" fill="${hair}" ${st}/><rect x="30" y="28" width="40" height="7" fill="${hair}" ${st}/>`;
-  if (h === 'Cap') s += `<path d="M31 31a19 17 0 0 1 38 0z" fill="${hair}" ${st}/><path d="M60 31h20" ${st}/>`;
-  if (h === 'Bucket') s += `<path d="M36 17h28l4 13H32z" fill="${hair}" ${st}/><path d="M26 31h48" ${st}/>`;
-  if (h === 'Headphones') s += `<path d="M30 38a20 20 0 0 1 40 0" fill="none" stroke="${ink}" stroke-width="3"/><rect x="26" y="34" width="7" height="13" fill="${ink}"/><rect x="67" y="34" width="7" height="13" fill="${ink}"/>`;
-  return s + '</svg>';
-}
 
 /* ---------- State ---------- */
 const FRIENDS = ['rae', 'pip', 'jules', 'noor', 'dmitri', 'sam', 'lou', 'kit'];
@@ -122,7 +73,7 @@ export function initState() {
     ],
     addState: { rae: 'friends', kit: 'requested', noor: 'add', sam: 'add', lou: 'add' },
     personFriend: true,
-    avatar: { tab: 'outfit', top: 0, print: 0, outfitColor: 2, hair: 0, hairColor: 6, hat: 0, eyes: 0, mouth: 0, extra: 0, skin: 2, bg: 2 },
+    avatar: initialAvatar(),
     draft: null,
     inputs: {},
   };
@@ -132,7 +83,7 @@ export function createScreenMarkup(id, S) {
   /* ---------- Template helpers ---------- */
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const val = id => esc(S.inputs[id] || '');
-  const av = (sz, extra = '') => `<span class="av ${sz < 44 ? 'thin' : ''}" style="--sz:${sz}px" ${extra}>${PERSON}</span>`;
+  const av = (sz, extra = '', seed = 'sleeve-friend') => `<span class="av ${sz < 44 ? 'thin' : ''}" style="--sz:${sz}px" ${extra}>${personAvatarSVG(seed)}</span>`;
   const art = sz => `<span class="art" style="--sz:${sz}px"></span>`;
   const play = (key, cls = '') => {
     const on = S.playing === key;
@@ -270,7 +221,7 @@ export function createScreenMarkup(id, S) {
       return sheet(`
         <div class="title-row"><h1 class="h-page">Send to friends</h1><button class="link" type="button" data-back>Cancel</button></div>
         <div class="send-song">${art(48)}<span class="songline"><b>[Song title]</b> · <span class="ar">[Artist]</span></span></div>
-        <div class="picks">${FRIENDS.map(f => `<button class="pick" type="button" data-action="sendPick" data-key="${f}" aria-pressed="${S.sendSel.has(f)}">${av(64)}<span class="chk">${ic.check}</span><span>@${f}</span></button>`).join('')}</div>
+        <div class="picks">${FRIENDS.map(f => `<button class="pick" type="button" data-action="sendPick" data-key="${f}" aria-pressed="${S.sendSel.has(f)}">${av(64, '', f)}<span class="chk">${ic.check}</span><span>@${f}</span></button>`).join('')}</div>
         <div class="msg-field"><label class="label" for="send-msg">Message (optional)</label><input class="field" id="send-msg" placeholder="Add a message" value="${val('send-msg')}" autocomplete="off"></div>
         <button class="btn pri sh big block" type="button" data-action="send" ${n ? '' : 'disabled'}>${n ? `Send to ${n} friend${n > 1 ? 's' : ''}` : 'Pick at least one friend'}</button>`);
     },
@@ -314,8 +265,8 @@ export function createScreenMarkup(id, S) {
         <div class="seg" role="tablist">${AV_TABS.map(t => `<button type="button" role="tab" data-action="avTab" data-key="${t.id}" aria-selected="${t.id === d.tab}">${t.label}</button>`).join('')}</div>
         <hr class="rule">
         <div class="opts">
-          ${tab.rows.map(([label, k]) => `<div class="opt"><span>${label}</span><button class="icon-btn" type="button" data-action="cycle" data-key="${k}:-1" aria-label="Previous ${label}">${ic.chevL}</button><output>${AVO[k][d[k]]}</output><button class="icon-btn" type="button" data-action="cycle" data-key="${k}:1" aria-label="Next ${label}">${ic.chevR}</button></div>`).join('')}
-          ${tab.colors.map(([label, k]) => `<div class="swatch-group"><span>${label}</span><div class="swatches">${SW.map((c, i) => `<button class="sw" type="button" style="background:${c}" data-action="swatch" data-key="${k}:${i}" aria-pressed="${d[k] === i}" aria-label="${label} ${i + 1}"></button>`).join('')}</div></div>`).join('')}
+          ${tab.rows.map(([label, k]) => `<div class="opt"><span>${label}</span><button class="icon-btn" type="button" data-action="cycle" data-key="${k}:-1" aria-label="Previous ${label}">${ic.chevL}</button><output>${avatarLabel(k, d[k])}</output><button class="icon-btn" type="button" data-action="cycle" data-key="${k}:1" aria-label="Next ${label}">${ic.chevR}</button></div>`).join('')}
+          ${tab.colors.map(([label, k]) => `<div class="swatch-group"><span>${label}</span><div class="swatches">${AV_COLORS[k].map((c, i) => `<button class="sw" type="button" style="background:${c}" data-action="swatch" data-key="${k}:${i}" aria-pressed="${d[k] === i}" aria-label="${label} ${i + 1}"></button>`).join('')}</div></div>`).join('')}
         </div>`,
         '<button class="btn pri sh big block" type="button" data-action="saveAvatar">Save avatar</button>');
     },
@@ -333,7 +284,7 @@ export function createScreenMarkup(id, S) {
     if (!rows.length) return `<li class="empty">No one called @${esc(q)} yet. Share an invite link instead.</li>`;
     return rows.map(([h, st]) => {
       const label = { friends: 'Friends', requested: 'Requested', add: 'Add' }[st];
-      return `<li><button class="row-main" type="button" data-go="person">${av(48)}<span class="tt"><b>@${h}</b><span>[Short bio]</span></span></button><button class="btn add-btn ${st === 'add' ? 'pri' : ''}" type="button" data-action="addFriend" data-key="${h}">${label}</button></li>`;
+      return `<li><button class="row-main" type="button" data-go="person">${av(48, '', h)}<span class="tt"><b>@${h}</b><span>[Short bio]</span></span></button><button class="btn add-btn ${st === 'add' ? 'pri' : ''}" type="button" data-action="addFriend" data-key="${h}">${label}</button></li>`;
     }).join('');
   }
 
