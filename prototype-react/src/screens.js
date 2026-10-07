@@ -45,8 +45,8 @@ const PERSON = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy
 const COVER = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L100 100M100 0L0 100" stroke="#aaaaaa" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg>';
 
 /* ---------- Avatar ---------- */
-const SW = ['#ffffff', '#ebebeb', '#e0e0e0', '#c4c4c4', '#a6a6a6', '#969696', '#7a7a7a', '#5c5c5c'];
-const AVO = {
+export const SW = ['#ffffff', '#ebebeb', '#e0e0e0', '#c4c4c4', '#a6a6a6', '#969696', '#7a7a7a', '#5c5c5c'];
+export const AVO = {
   top: ['Hoodie', 'Tee', 'Jacket', 'Sweater'],
   print: ['Bear', 'None', 'Star', 'Stripes', 'Note'],
   hair: ['None', 'Short', 'Long', 'Curly', 'Buzz'],
