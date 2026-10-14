@@ -515,8 +515,7 @@ export default function Prototype() {
       case 'edit-profile': action('saveProfile'); break
       case 'drop':
         mutate(next => {
-          next.songComments.unshift({ who: `@${state.handle}`, t: 'now', text: next.inputs['drop-note']?.trim() || 'This one is for right now.', mine: true })
-          next.comments += 1
+          next.songComments.unshift({ who: `@${state.handle}`, t: 'now', text: next.inputs['drop-note']?.trim() || 'This one is for right now.', mine: true, trackId: next.selectedTrackId })
           next.inputs['drop-note'] = ''
         })
         closeDrop()
@@ -526,8 +525,7 @@ export default function Prototype() {
         const text = state.inputs['song-c']?.trim()
         if (!text) { toast('Write something first'); screenRef.current.querySelector('#song-c').focus(); return }
         mutate(next => {
-          next.songComments.unshift({ who: '@[you]', t: 'now', text, mine: true })
-          next.comments += 1
+          next.songComments.unshift({ who: `@${next.handle}`, t: 'now', text, mine: true, trackId: next.selectedTrackId })
           next.inputs['song-c'] = ''
         })
         toast('Comment posted')

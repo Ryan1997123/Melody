@@ -10,6 +10,7 @@ export const FRAMES = [
   { id: 'chats', name: 'Chats', file: '04-chats.png', figmaNode: '78:231', group: 'Tabs' },
   { id: 'profile', name: 'Profile', file: '05-profile.png', figmaNode: '78:309', group: 'Tabs' },
   { id: 'edit-profile', name: 'Edit profile', figmaNode: '94:1665', group: 'Profile', sheet: true, chain: ['profile'] },
+  { id: 'profile-comments', name: 'Your comments', group: 'Profile', chain: ['profile'] },
   { id: 'drop-pick', name: 'Drop: pick a song', file: '06-drop-pick-a-song.png', figmaNode: '79:241', group: 'Drop a song', sheet: true, chain: ['discover'] },
   { id: 'drop-why', name: 'Drop: say why', file: '07-drop-say-why.png', figmaNode: '79:312', group: 'Drop a song', sheet: true, chain: ['discover', 'drop-pick'] },
   { id: 'song', name: 'Song page', file: '08-song-page.png', figmaNode: '79:345', group: 'Songs', chain: ['discover'] },
@@ -69,14 +70,13 @@ export function initState() {
     chips: new Set(),
     requests: ['rae'],
     friends: 8,
-    comments: 12,
     likes: { p1: { n: 4, on: false }, p2: { n: 2, on: false }, p3: { n: 7, on: false } },
     unread: { c1: true, c3: true },
     spotify: false,
     spotifyError: '',
     songComments: [
-      { who: '@pip', t: '2h', text: 'This song made the whole train ride feel like a movie.' },
-      { who: '@jules', t: '1d', text: 'Have had this on repeat all week.' },
+      { who: '@pip', t: '2h', text: 'This song made the whole train ride feel like a movie.', trackId: FIGMA_SONG.id },
+      { who: '@jules', t: '1d', text: 'Have had this on repeat all week.', trackId: FIGMA_SONG.id },
     ],
     sendSel: new Set(['rae', 'jules']),
     msgs: [
@@ -103,6 +103,7 @@ export function createScreenMarkup(id, S) {
   const av = (sz, extra = '', seed = 'melody-friend') => `<span class="av ${sz < 44 ? 'thin' : ''}" style="--sz:${sz}px" ${extra}>${personAvatarSVG(seed)}</span>`;
   const trackById = trackId => S.catalog.find(track => track.id === trackId) || SAMPLE_TRACKS[0]
   const selectedTrack = trackById(S.selectedTrackId)
+  const myComments = S.songComments.filter(comment => comment.mine)
   const searching = Boolean(S.searchQuery)
   const discoverTracks = filterDiscoverTracks(
     searching && S.searchSource === 'spotify' ? S.searchResults :
@@ -207,7 +208,7 @@ export function createScreenMarkup(id, S) {
         <div class="btn-row"><button class="btn sh" type="button" data-go="avatar">Edit avatar</button><button class="btn pri sh" type="button" data-go="edit-profile">Edit profile</button></div>
       </section>
       <div class="stats">
-        <div class="card sh stat"><b>${S.comments}</b><span>comments</span></div>
+        <button class="card sh stat" type="button" data-go="profile-comments"><b>${myComments.length}</b><span>${myComments.length === 1 ? 'comment' : 'comments'}</span></button>
         <button class="card sh stat" type="button" data-go="friends" data-mode="tab"><b>${S.friends}</b><span>friends</span></button>
       </div>
       <section class="card sh spot">
@@ -217,6 +218,19 @@ export function createScreenMarkup(id, S) {
           ? `<p>Connected. Your top tracks show on your profile and in Discover.</p><button class="btn sh" type="button" data-action="spotify">Disconnect</button>`
           : `<p>Find songs, see your top tracks, and play music with Spotify.</p><button class="btn mint sh" type="button" data-action="spotify">Connect Spotify</button>`}
       </section>
+    </div>${tabbar('profile')}</div>`,
+
+    'profile-comments': () => `<div class="scr"><div class="scroll">
+      <div class="title-row start"><button class="icon-btn" type="button" data-back aria-label="Back">${ic.left}</button><h1 class="h-page">Your comments</h1></div>
+      <p class="lead">${myComments.length} ${myComments.length === 1 ? 'comment' : 'comments'}</p>
+      ${myComments.length ? myComments.map(comment => {
+        const track = trackById(comment.trackId)
+        return `<article class="card sh comment">
+          <header><b>@${esc(S.handle)}</b><time>${esc(comment.t)}</time></header>
+          <p>${esc(comment.text)}</p>
+          <button class="bare songline" type="button" data-go="song" data-track-id="${esc(track.id)}">${art(44, track)}<span><b>${esc(track.title)}</b> · ${esc(track.artist)}</span></button>
+        </article>`
+      }).join('') : `<section class="dashed"><h2 class="h-sec">No comments yet</h2><p>Share a note on a song or drop a song to start your collection.</p><button class="btn pri sh" type="button" data-go="discover" data-mode="tab">Explore Discover</button></section>`}
     </div>${tabbar('profile')}</div>`,
 
     'drop-pick': () => sheet(`
@@ -251,7 +265,7 @@ export function createScreenMarkup(id, S) {
         <textarea class="field" id="song-c" rows="2" placeholder="A memory, a moment, a line you can’t shake…">${val('song-c')}</textarea>
         <button class="btn" type="submit">Post comment</button>
       </form>
-      ${S.songComments.map(c => `<article class="card sh comment">
+      ${S.songComments.filter(c => c.trackId === selectedTrack.id).map(c => `<article class="card sh comment">
         <header><button class="bare" type="button" ${c.mine ? 'data-go="profile" data-mode="tab"' : 'data-go="person"'}>${av(36, '', c.mine ? 'ryan' : 'rae')}<b>${esc(c.mine ? '@' + S.handle : c.who)}</b></button><time>${c.t}</time></header>
         <p>${esc(c.text)}</p>
       </article>`).join('')}

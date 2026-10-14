@@ -48,6 +48,12 @@ Settings; Done returns to Profile. Logging out clears Spotify tokens and stops
 playback but preserves in-memory demo drops, comments, and chats until refresh.
 There is no real authentication or server persistence.
 
+Profile's comments stat opens Your comments and counts only your actual
+submitted song comments and drops, starting at zero. Entries link to the
+song they were posted on; other people's demo comments do not affect your
+count. Comments remain in memory during the visit and reset on refresh,
+like the rest of the prototype content.
+
 Both prototypes share account-flow templates, actions, and layout CSS from
 `../prototype-react/src/account-flows.js` and `account-flows.css`, with
 fidelity-specific colors. Hi-fi uses the map's real song titles and verified
