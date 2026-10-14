@@ -414,7 +414,8 @@ body { background: var(--canvas); }
 .screen { color: var(--ink); font: 400 16px/1.5 var(--f-body); }
 .scr, .sheet-body, .sheet-foot { background: var(--paper); }
 .tabbar { background: var(--surface); }
-.card, .field, .search, .icon-btn, .step i, .seg button, .opt output { background: var(--surface); }
+.card, .field, .search, .icon-btn, .step i, .seg button, .opt output,
+.btn, .chip, .like, .rows, .bub.them, .composer-bar { background: var(--surface); }
 .card.fill { background: var(--surface); }
 .btn.pri, .step.on i, .tab.on, .chip[aria-pressed="true"], .bub.me { background: #ffd833; }
 .btn.lemon { background: #ffd833; }
@@ -424,7 +425,7 @@ body { background: var(--canvas); }
 .pick[aria-pressed="true"] .av { border-color: #6fedc0; }
 .fab { background: #ff7ac6; color: var(--ink); }
 .btn.sh:active, .play.sh:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
-.btn:not(.sh):active { background: #ffcc00; }
+.btn:not(.sh):active { background: var(--muted-surface); }
 .btn[disabled] { background: #f7ddeb; color: var(--mute); }
 .h-xl { font-size: 56px; }
 .h-page { font-size: 30px; line-height: 1.1; }
@@ -439,7 +440,7 @@ body { background: var(--canvas); }
 .sheet .scroll { padding-top: 34px; }
 .tabbar { min-height: 96px; gap: 4px; padding: 8px 4px 34px; }
 .tab { min-height: 54px; }
-.fab { top: -32px; width: 60px; height: 60px; margin-left: -30px; }
+.fab { top: -32px; width: 60px; height: 60px; margin-left: -30px; border: var(--b); }
 .scrim { height: 54px; }
 .signin { padding-top: 60px; }
 .brand { display: flex; align-items: center; gap: 10px; }
@@ -483,6 +484,8 @@ body { background: var(--canvas); }
 .chip { border-width: 2px; }
 .step.on i { background: #ffd833; }
 .step.todo i { background: var(--surface); }
+.step.todo { color: var(--hint); }
+.step.todo i { border-color: var(--hint); }
 .stepper { font-size: 13px; }
 .step { gap: 7px; }
 .step i { width: 26px; height: 26px; }
@@ -537,38 +540,70 @@ body { background: var(--canvas); }
   --frame-shadow: 0 0 0 3px #fff0f7, 12px 12px 0 #fff0f7;
 }
 
-[data-theme="dark"] .screen :is(.btn, .chip, .like, .seg button, .bub.them, .composer-bar) {
-  background-color: var(--surface);
-}
-[data-theme="dark"] .screen :is(.btn.pri, .btn.lemon, .play, .tab.on, .chip[aria-pressed="true"], .step.on i, .bub.me, .stat:first-child, .req, .why, .composer) {
+.screen :is(.btn.pri, .btn.lemon, .play, .tab.on, .chip[aria-pressed="true"], .step.on i, .bub.me, .stat:first-child, .req, .why, .composer) {
   background-color: #ffd833;
   color: #000;
 }
-[data-theme="dark"] .screen :is(.btn.bubblegum, .fab, .brand-mark, .like.on, .seg button[aria-selected="true"], .me-card, .signin .form) {
+.screen :is(.btn.bubblegum, .fab, .brand-mark, .like.on, .seg button[aria-selected="true"], .signin .form) {
   background-color: #ff7ac6;
   color: #000;
 }
-[data-theme="dark"] .screen :is(.btn.mint, .talk, .pick .chk, .req-row .btn.pri) {
+.screen :is(.btn.mint, .talk, .pick .chk, .req-row .btn.pri, .invite) {
   background-color: #6fedc0;
   color: #000;
 }
-[data-theme="dark"] .screen :is(.btn.periwinkle, .stat:nth-child(2), .av-head .icon-btn) {
+.screen :is(.btn.periwinkle, .stat:nth-child(2), .av-head .icon-btn),
+.screen[data-screen="friends"] [data-go="add-friends"].btn {
   background-color: #9fa8ff;
   color: #000;
 }
-[data-theme="dark"] .screen[data-screen="person"] .me-card {
+.screen[data-screen="profile"] .me-card,
+.screen[data-screen="logout"] .me-card,
+.screen[data-screen="welcome"] .me-card {
+  background-color: #ff7ac6;
+  color: #000;
+}
+.screen[data-screen="person"] .me-card {
   background-color: #9fa8ff;
+  color: #000;
 }
-[data-theme="dark"] .screen :is(.rows, .seg button, .opt output, .field, .search) {
+.screen :is(.why, .composer, .req, .invite) :is(.helper, .tt > span, .who) {
+  color: #000;
+}
+.signin .form .link { color: #000; }
+.screen :is(.why, .composer) .field { background-color: var(--paper); }
+.screen :is(.why, .composer) .btn {
   background-color: var(--surface);
-}
-[data-theme="dark"] .screen :is(.field, .search, .btn:not(.pri):not(.lemon):not(.mint):not(.periwinkle):not(.bubblegum), .like:not(.on), .seg button:not([aria-selected="true"])) {
   color: var(--ink);
 }
-[data-theme="dark"] .screen :is(.why, .composer, .req) :is(.helper, .tt > span, .who) {
-  color: #000;
+.screen :is(.me-card, .signin .form, .invite) .btn:not(.pri):not(.mint):not(.periwinkle):not(.bubblegum) {
+  background-color: var(--surface);
+  color: var(--ink);
 }
-[data-theme="dark"] .signin .form .link { color: #000; }
+.screen .invite .tt > span { color: #000; }
+.screen .swatch-tile { color: #000; }
+.screen .seg button:not([aria-selected="true"]) { background-color: var(--paper); }
+.screen[data-screen="chats"] .rows,
+.screen[data-screen="add-friends"] .rows,
+.screen[data-screen="onboarding-friends"] .rows { background-color: var(--paper); }
+.screen[data-screen="add-friends"] .add-btn:not(.pri),
+.screen[data-screen="onboarding-friends"] [data-action="onboardingFriend"][aria-pressed="true"] { background-color: var(--muted-surface); }
+.screen .composer-bar .icon-btn { background-color: #ffd833; color: #000; }
+.convo-head { background-color: var(--surface); }
+.screen[data-screen="welcome"] .me-card {
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  box-shadow: none;
+}
+.screen[data-screen="welcome"] .welcome-avatar {
+  display: block;
+  padding: 18px;
+  border: var(--b);
+  background: #ff7ac6;
+  box-shadow: var(--sh-card);
+}
+.screen[data-screen="welcome"] .me-card p { color: var(--mute); }
 [data-theme="dark"] .screen .btn[disabled] {
   background-color: var(--surface);
   color: var(--mute);
@@ -578,6 +613,5 @@ body { background: var(--canvas); }
 .screen .onboarding [data-action="shuffle"] { background: #9fa8ff; color: #000; }
 .settings-row { background: var(--surface); }
 .prototype-note { background: var(--muted-surface); padding: 8px; }
-[data-theme="dark"] .swatch-tile { color: #000; }
-[data-theme="dark"] .pick[aria-pressed="true"] .av { border-color: #6fedc0; }
+.screen .pick[aria-pressed="true"] .av { border-color: #6fedc0; }
 .switch select { padding: 6px; border: 2px solid var(--chrome-line); background: var(--surface); color: var(--chrome-ink); }

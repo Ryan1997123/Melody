@@ -372,7 +372,7 @@ export function createScreenMarkup(id, S) {
         lou: 'Songs first, questions later.',
         kit: 'Here for the deep cuts.',
       }[h] || 'Here for the music.';
-      return `<li><button class="row-main" type="button" data-go="person">${av(48, '', h)}<span class="tt"><b>@${h}</b><span>${bio}</span></span></button><button class="btn add-btn ${st === 'add' ? 'periwinkle' : ''}" type="button" data-action="addFriend" data-key="${h}">${label}</button></li>`;
+      return `<li><button class="row-main" type="button" data-go="person">${av(48, '', h)}<span class="tt"><b>@${h}</b><span>${bio}</span></span></button><button class="btn add-btn ${st === 'add' ? 'pri' : ''}" type="button" data-action="addFriend" data-key="${h}">${label}</button></li>`;
     }).join('');
   }
 

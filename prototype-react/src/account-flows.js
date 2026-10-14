@@ -133,12 +133,12 @@ export function accountScreens(S, { esc, sheet, profile, themePreference = 'syst
       <label class="label" for="onboarding-q">Search by @handle</label><input class="field" id="onboarding-q" type="search" value="${esc(S.inputs['onboarding-q'] || '')}">
       <section class="card sh invite"><h2 class="h-card">Invite friends to Melody</h2><button class="btn sh" type="button" data-action="invite">Share invite link</button></section>
       <h2 class="h-sec">People you might know</h2>
-      <ul class="rows">${people.map(name => `<li><span class="av" style="--sz:44px">${personAvatarSVG(name)}</span><b>@${name}</b><button class="btn" type="button" data-action="onboardingFriend" data-key="${name}">${S.addState[name] === 'requested' ? 'Requested' : 'Add'}</button></li>`).join('')}</ul>
+      <ul class="rows">${people.map(name => `<li><span class="av" style="--sz:44px">${personAvatarSVG(name)}</span><b>@${name}</b><button class="btn ${S.addState[name] === 'requested' ? '' : 'pri'}" type="button" data-action="onboardingFriend" data-key="${name}" aria-pressed="${S.addState[name] === 'requested'}">${S.addState[name] === 'requested' ? 'Requested' : 'Add'}</button></li>`).join('')}</ul>
       ${people.length ? '' : '<p role="status">No people match that handle.</p>'}
       <button class="btn pri sh block" type="button" data-go="welcome">Finish</button>
       <button class="link" type="button" data-go="welcome">Skip for now</button>`),
     welcome: () => page("You're in", 0, `
-      <section class="card sh fill me-card"><span class="welcome-star" aria-hidden="true">✦</span><span class="av" style="--sz:140px">${avatarSVG(S.avatar)}</span><h2>@${esc(S.handle)}</h2><p>Welcome to Melody. Find a song that feels like you.</p></section>
+      <section class="card sh fill me-card"><span class="welcome-star" aria-hidden="true">✦</span><span class="welcome-avatar"><span class="av" style="--sz:140px">${avatarSVG(S.avatar)}</span></span><h2>@${esc(S.handle)}</h2><p>Welcome to Melody. Find a song that feels like you.</p></section>
       <button class="btn pri sh block" type="button" data-go="drop-pick">Drop your first song</button>
       <button class="btn sh block" type="button" data-go="discover">Explore Discover</button>`),
     settings: () => sheet(`

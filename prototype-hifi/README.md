@@ -33,6 +33,15 @@ Dark mode uses the supplied Figma PNGs: background `#24132F`, raised surfaces
 retain black text, and Spotify artwork and avatar colors are not inverted.
 The low-fidelity prototype's theme behavior is unchanged.
 
+Color roles are checked against the light and dark PNG exports in
+`../other-files/imgs/`: your Profile card is Bubblegum, comments Lemon,
+friends Periwinkle, and Discover's talking-about card and invites Mint in
+both themes. Neutral controls/cards are White in light mode and `#331C42`
+in dark mode. Note/composer fields use the screen color. Accent text stays
+black; neutral text, borders, and hard shadows follow the theme's ink.
+These color checks do not imply pixel-identical layouts or content: the coded
+prototype also includes requested controls, real artwork, and demo notices.
+
 ## Account and Settings prototype flows
 
 The updated Figma map is `../other-files/melody-figma-map-latestbest.md`.
