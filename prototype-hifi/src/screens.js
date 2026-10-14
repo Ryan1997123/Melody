@@ -200,7 +200,7 @@ export function createScreenMarkup(id, S) {
     </div>${tabbar('chats')}</div>`,
 
     profile: () => `<div class="scr"><div class="scroll">
-      <div class="title-row"><h1 class="h-page">Profile</h1><div class="title-actions"><button class="icon-btn" type="button" data-go="settings" aria-label="Settings">⚙</button>${themeToggle()}</div></div>
+      <div class="title-row"><h1 class="h-page">Profile</h1><div class="title-actions"><button class="btn sh" type="button" data-go="settings">Settings</button>${themeToggle()}</div></div>
       <section class="card sh fill me-card">
         <span class="av" style="--sz:140px">${avatarSVG(S.avatar)}</span>
         <h2 class="handle-xl">@${esc(S.handle)}</h2>
