@@ -24,7 +24,7 @@ preference.
 ## Dark mode
 
 The hi-fi prototype follows the device's light/dark preference until you
-override it. The sun button on Profile toggles dark mode and saves your choice
+override it. The sun button on Discover, Friends, Chats, and Profile toggles dark mode and saves your choice
 in this browser. In review controls (`?dev` or press S), choose **Device theme**
 to follow your device again.
 
@@ -56,9 +56,16 @@ than pretending to connect.
 After connecting, Discover can search Spotify tracks and load the account's
 recent top tracks. Album art is read from Spotify's track metadata or public
 oEmbed response, and the song screen uses Spotify's official embedded player.
-The [Replay Sleeve page](https://replay.software/sleeve) is linked as a
-now-playing/sleeve reference; it is a native player and does not expose a
-public artwork API for this browser prototype. Artwork is fetched at runtime;
+Discover's Play buttons start or pause the selected track in a small official
+Spotify player without opening song details. Clicking the artwork, title,
+artist, or rest of the song row opens its details instead. The player stays
+available as you navigate until you close it. Playback and preview availability
+are controlled by Spotify; if a browser blocks automatic playback, use the
+visible Spotify player controls. No additional playback permissions are requested.
+
+Replay Sleeve was a visual reference, not an artwork source; it is a native
+player and does not expose a public artwork API for this browser prototype.
+Artwork is fetched at runtime;
 no album art is committed to the repository.
 
 ## Prototype sources

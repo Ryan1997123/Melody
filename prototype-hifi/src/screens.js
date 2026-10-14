@@ -31,7 +31,7 @@ const ic = {
   compass: svg('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z"/>'),
   people: svg('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.4-3.6 3.1-6 6.5-6s6.1 2.4 6.5 6"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M17.5 14.4c2.2.8 3.6 2.9 4 5.6"/>'),
   chat: svg('<path d="M12 3.5a8.5 8.5 0 1 1-4.2 15.9L3.5 20.5l1.1-4.1A8.5 8.5 0 0 1 12 3.5z"/>'),
-  smile: svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 13.5c.9 1.5 2.1 2.2 3.5 2.2s2.6-.7 3.5-2.2"/>'),
+  smile: svg('<circle cx="12" cy="12" r="9"/><circle cx="9" cy="9" r=".75" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r=".75" fill="currentColor" stroke="none"/><path d="M8.5 13.5c.9 1.5 2.1 2.2 3.5 2.2s2.6-.7 3.5-2.2"/>'),
   search: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/>', 2.5),
   play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>',
   pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor"/></svg>',
@@ -97,13 +97,17 @@ export function createScreenMarkup(id, S) {
   const art = (sz, track = selectedTrack) =>
     `<span class="art" data-artwork="${esc(track.id)}" style="--sz:${sz}px"></span>`
   const play = (key, cls = '', track = selectedTrack) => {
-    return `<button class="play ${cls}" type="button" data-action="play" data-key="${key}" data-track-id="${esc(track.id)}" aria-label="Play ${esc(track.title)} on Spotify">${ic.play}</button>`;
+    const playing = S.playback?.trackId === track.id && !S.playback.paused
+    return `<button class="play ${cls}" type="button" data-action="play" data-key="${key}" data-track-id="${esc(track.id)}" aria-label="${playing ? 'Pause' : 'Play'} ${esc(track.title)} on Spotify" aria-pressed="${Boolean(playing)}">${playing ? ic.pause : ic.play}</button>`;
   };
   const songRow = (key, opts = {}) => {
     const track = opts.track || S.catalog[(Number(key.replace(/\D/g, '')) - 1) % S.catalog.length] || SAMPLE_TRACKS[0]
-    return `<li><button class="row-main" type="button" data-track-id="${esc(track.id)}" ${opts.action ? `data-action="${opts.action}" data-key="${key}"` : 'data-go="song"'}>${opts.rank ? `<span class="rank">${opts.rank}</span>` : ''}${art(52, track)}<span class="tt"><b>${esc(track.title)}</b><span>${esc(track.artist)}</span></span></button>${play(key, '', track)}</li>`
+    const destination = opts.action ? `data-action="${opts.action}" data-key="${key}"` : 'data-go="song"'
+    return `<li data-track-id="${esc(track.id)}" ${destination}><button class="row-main" type="button" data-track-id="${esc(track.id)}" ${destination}>${opts.rank ? `<span class="rank">${opts.rank}</span>` : ''}${art(52, track)}<span class="tt"><b>${esc(track.title)}</b><span>${esc(track.artist)}</span></span></button>${play(key, '', track)}</li>`
   }
   const searchBox = (id, ph, form) => `<form class="search" data-form="${form}" role="search">${ic.search}<input id="${id}" type="search" placeholder="${ph}" value="${val(id)}" autocomplete="off" aria-label="${ph}"></form>`;
+  const themeToggle = () => `<button class="icon-btn" type="button" data-action="theme" aria-label="Dark mode" aria-pressed="${Boolean(S.darkMode)}" title="Switch to ${S.darkMode ? 'light' : 'dark'} mode">${ic.sun}</button>`
+  const pageTitle = title => `<div class="title-row"><h1 class="h-page">${title}</h1>${themeToggle()}</div>`
   function tabbar(active) {
     const t = (id, label, icon) => `<button class="tab ${active === id ? 'on' : ''}" type="button" data-go="${id}" data-mode="tab" ${active === id ? 'aria-current="page"' : ''}>${icon}<span>${label}</span></button>`;
     return `<nav class="tabbar" aria-label="Main">${t('discover', 'Discover', ic.compass)}${t('friends', 'Friends', ic.people)}<span class="fab-slot"><button class="fab" type="button" data-go="drop-pick" aria-label="Drop a song">${ic.plus}</button></span>${t('chats', 'Chats', ic.chat)}${t('profile', 'Profile', ic.smile)}</nav>`;
@@ -134,7 +138,7 @@ export function createScreenMarkup(id, S) {
     </div></div>`,
 
     discover: () => `<div class="scr"><div class="scroll">
-      <div class="head"><h1 class="h-page">Discover</h1><p class="lead">Find a song, hear a preview, read what people think.</p></div>
+      <div class="head">${pageTitle('Discover')}<p class="lead">Find a song, hear a preview, read what people think.</p></div>
       ${searchBox('disc-q', 'Search songs or artists', 'search')}
       ${!S.spotify ? '<p class="search-note">Connect Spotify from your profile to search and play your own catalog.</p>' : ''}
       ${S.searchResults.length ? `<section class="sec"><h2 class="h-sec">Search results</h2><ul class="rows">${S.searchResults.map(track => songRow(`search-${track.id}`, { track })).join('')}</ul></section>` : ''}
@@ -150,7 +154,7 @@ export function createScreenMarkup(id, S) {
     </div>${tabbar('discover')}</div>`,
 
     friends: () => `<div class="scr"><div class="scroll">
-      <div class="title-row"><h1 class="h-page">Friends</h1><button class="btn sh" type="button" data-go="add-friends">+ Add</button></div>
+      <div class="title-row"><h1 class="h-page">Friends</h1><div class="title-actions"><button class="btn sh" type="button" data-go="add-friends">+ Add</button>${themeToggle()}</div></div>
       ${S.requests.length ? `<section class="card sh fill req"><h2 class="h-card">Friend requests</h2>
         ${S.requests.map(h => `<div class="req-row"><button class="bare who" type="button" data-go="person">${av(38)}<b>@${h}</b></button><button class="btn" type="button" data-action="decline">Decline</button><button class="btn pri" type="button" data-action="accept">Accept</button></div>`).join('')}
       </section>` : ''}
@@ -165,7 +169,7 @@ export function createScreenMarkup(id, S) {
     </div>${tabbar('friends')}</div>`,
 
     chats: () => `<div class="scr"><div class="scroll">
-      <div class="head"><h1 class="h-page">Chats</h1><p class="lead">Talk music with your friends.</p></div>
+      <div class="head">${pageTitle('Chats')}<p class="lead">Talk music with your friends.</p></div>
       <ul class="rows">${[['c1', 'Sent you “Yellow”', '3m', 'rae'], ['c2', 'You: ok you win, this is a banger', '1h', 'pip'], ['c3', 'the chorus!!', '5h', 'jules'], ['c4', 'Say hi', '', 'noor']].map(([k, msg, t, handle]) =>
         `<li><button class="row-main chat-row" type="button" data-action="read" data-key="${k}" data-go="conversation">${av(52, '', handle)}<span class="tt"><b>@${handle}</b><span>${msg}</span></span><span class="chat-meta">${t ? `<time>${t}</time>` : ''}${S.unread[k] ? '<i class="dot" aria-label="Unread"></i>' : ''}</span></button></li>`).join('')}</ul>
       <div class="dashed">
@@ -176,7 +180,7 @@ export function createScreenMarkup(id, S) {
     </div>${tabbar('chats')}</div>`,
 
     profile: () => `<div class="scr"><div class="scroll">
-      <div class="title-row"><h1 class="h-page">Profile</h1><button class="icon-btn" type="button" data-action="theme" aria-label="Dark mode" aria-pressed="${Boolean(S.darkMode)}" title="Switch to ${S.darkMode ? 'light' : 'dark'} mode">${ic.sun}</button></div>
+      ${pageTitle('Profile')}
       <section class="card sh fill me-card">
         <span class="av" style="--sz:140px">${avatarSVG(S.avatar)}</span>
         <h2 class="handle-xl">@${esc(S.handle)}</h2>
@@ -192,7 +196,6 @@ export function createScreenMarkup(id, S) {
         ${S.spotify
           ? `<p>Connected. Your top tracks show on your profile and in Discover.</p><button class="btn sh" type="button" data-action="spotify">Disconnect</button>`
           : `<p>Find songs, see your top tracks, and play music with Spotify.</p><button class="btn mint sh" type="button" data-action="spotify">Connect Spotify</button>`}
-        <a class="text-link" href="https://replay.software/sleeve" target="_blank" rel="noreferrer">Inspired by Replay Sleeve</a>
       </section>
     </div>${tabbar('profile')}</div>`,
 

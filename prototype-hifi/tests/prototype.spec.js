@@ -122,14 +122,112 @@ test('Spotify song details and edit profile work', async ({ page }) => {
   await expect(page.locator('.me-card p')).toHaveText('Songs make a home wherever you are.')
 })
 
-test('list playback opens Spotify and missing cover art uses the supplied atlas', async ({ page }) => {
+async function mockSpotifyPlayer(page) {
+  await page.route('https://open.spotify.com/embed/iframe-api/v1', route => route.fulfill({
+    contentType: 'application/javascript',
+    body: `
+      window.spotifyCommands = [];
+      window.onSpotifyIframeApiReady({
+        createController(element, options, callback) {
+          const frame = document.createElement('iframe');
+          frame.title = 'Spotify track player';
+          element.replaceWith(frame);
+          const listeners = {};
+          let uri = options.uri;
+          let paused = true;
+          const update = () => listeners.playback_update?.({ data: { playingURI: uri, isPaused: paused } });
+          callback({
+            addListener(name, listener) {
+              listeners[name] = listener;
+              if (name === 'ready') setTimeout(listener, 0);
+            },
+            play() { window.spotifyCommands.push(['play', uri]); paused = false; update(); },
+            togglePlay() { window.spotifyCommands.push(['toggle', uri]); paused = !paused; update(); },
+            loadEntity(next) { window.spotifyCommands.push(['load', next]); uri = next; },
+            destroy() { window.spotifyCommands.push(['destroy', uri]); frame.remove(); },
+          });
+        },
+      });
+    `,
+  }))
+}
+
+test('list playback stays on Discover, pauses, changes tracks, and preserves detail navigation', async ({ page }) => {
+  await mockSpotifyPlayer(page)
   await page.route('https://open.spotify.com/oembed**', route => route.abort())
   await page.goto('/#/discover')
-  await page.locator('.rows [data-action="play"]').first().click()
+  const rows = page.locator('.rows > li')
+  const firstPlay = rows.first().locator('.play')
+  await firstPlay.click()
+  await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'discover')
+  await expect(page.getByRole('region', { name: 'Spotify player' })).toBeVisible()
+  const playerBox = await page.getByRole('region', { name: 'Spotify player' }).boundingBox()
+  const dropBox = await page.getByRole('button', { name: 'Drop a song', exact: true }).boundingBox()
+  expect(playerBox.y + playerBox.height).toBeLessThan(dropBox.y)
+  await expect(firstPlay).toHaveAttribute('aria-label', 'Pause Blinding Lights on Spotify')
+  await firstPlay.click()
+  await expect(firstPlay).toHaveAttribute('aria-label', 'Play Blinding Lights on Spotify')
+  await rows.nth(1).locator('.play').click()
+  await expect(rows.nth(1).locator('.play')).toHaveAttribute('aria-pressed', 'true')
+  await expect(firstPlay).toHaveAttribute('aria-pressed', 'false')
+  const commands = await page.evaluate(() => window.spotifyCommands)
+  expect(commands.map(command => command[0])).toEqual(['play', 'toggle', 'load', 'play'])
+  await expect.poll(() => rows.first().locator('.art').evaluate(element => getComputedStyle(element).backgroundImage))
+    .toContain('Cover.svg')
+  await rows.first().locator('.tt b').click()
   await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'song')
   await expect(page.locator('.song-title')).toHaveText('Blinding Lights')
-  await expect.poll(() => page.locator('.cover .art').evaluate(element => getComputedStyle(element).backgroundImage))
-    .toContain('Cover.svg')
+  await expect(page.locator('.song-sub')).toContainText('After Hours')
+  await page.getByRole('button', { name: 'Close Spotify player' }).click()
+  expect(await page.evaluate(() => window.spotifyCommands.at(-1)[0])).toBe('destroy')
+  await expect(page.getByRole('region', { name: 'Spotify player' })).toHaveCount(0)
+  await page.goBack()
+  await page.locator('.rows .play').first().click()
+  await expect(page.locator('.rows .play').first()).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('song artwork, artist, and row whitespace open details without starting playback', async ({ page }) => {
+  for (const selector of ['.art', '.tt > span', null]) {
+    await page.goto('/#/discover')
+    const row = page.locator('.rows > li').first()
+    if (selector) await row.locator(selector).click()
+    else await row.click({ position: { x: 2, y: 2 } })
+    await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'song')
+    await expect(page.getByRole('region', { name: 'Spotify player' })).toHaveCount(0)
+  }
+})
+
+test('Spotify player loading errors are visible without leaving Discover', async ({ page }) => {
+  await page.route('https://open.spotify.com/embed/iframe-api/v1', route => route.abort())
+  await page.goto('/#/discover')
+  await page.locator('.rows .play').first().click()
+  await expect(page.getByRole('region', { name: 'Spotify player' })).toContainText('Spotify player could not load')
+  await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'discover')
+  await page.getByRole('button', { name: 'Close Spotify player' }).click()
+  await mockSpotifyPlayer(page)
+  await page.locator('.rows .play').first().click()
+  await expect(page.locator('.rows .play').first()).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('main pages share the theme toggle and Profile has two eyes and no Sleeve link', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('/#/discover')
+  for (const tab of ['Discover', 'Friends', 'Chats', 'Profile']) {
+    await page.getByRole('button', { name: tab, exact: true }).click()
+    const toggle = page.getByRole('button', { name: 'Dark mode', exact: true })
+    await expect(toggle).toHaveCount(1)
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await toggle.click()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    await toggle.click()
+  }
+  await expect(page.getByRole('button', { name: 'Profile', exact: true }).locator('svg circle[fill="currentColor"]')).toHaveCount(2)
+  await expect(page.getByRole('link', { name: 'Inspired by Replay Sleeve' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Dark mode', exact: true }).click()
+  await page.getByRole('button', { name: 'Discover', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Dark mode', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 })
 
 test('song drops and comments clear submitted inputs', async ({ page }) => {

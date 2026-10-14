@@ -115,6 +115,7 @@ kbd { margin-left: auto; padding: 1px 6px; border: 1px solid var(--chrome-line);
 .sec { display: flex; flex-direction: column; gap: 10px; }
 .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .title-row.start { justify-content: flex-start; gap: 24px; }
+.title-actions { display: flex; align-items: center; gap: 8px; }
 .h-mid { font-size: 27px; }
 
 .card { border: var(--b); background: var(--paper); padding: 18px; }
@@ -452,6 +453,17 @@ body { background: var(--canvas); }
 .song-actions { flex-wrap: wrap; }
 .song-actions .btn { flex: 1; min-width: 125px; }
 .spotify-embed { display: block; width: 100%; height: 152px; border: 0; }
+.player-position { position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 12; }
+.player-position.above-tabs { bottom: 140px; }
+.player-position.above-footer { bottom: 90px; }
+.mini-player { padding: 8px; border: var(--b); background: var(--surface); color: var(--ink); box-shadow: var(--sh-btn); font: 400 12px/1.3 var(--f-body); }
+.mini-player-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mini-player-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.mini-player-head button { min-height: 32px; border: var(--b); background: var(--paper); color: var(--ink); font: 700 12px var(--f-ui); }
+.mini-player-embed { min-height: 80px; margin-top: 6px; }
+.mini-player-embed iframe { display: block; max-width: 100%; border: 0; }
+.mini-player p { margin: 6px 0 0; }
+.has-player .scroll { padding-bottom: 250px; }
 .song-meta { overflow-wrap: anywhere; }
 .text-link { font-size: 13px; }
 .spot { width: 100%; }

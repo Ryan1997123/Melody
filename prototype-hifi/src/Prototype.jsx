@@ -3,6 +3,7 @@ import parse, { attributesToProps } from 'html-react-parser'
 import { FRAMES, byId, TABS, validScreen, initState, createScreenMarkup } from './screens.js'
 import { AVO, AV_COLORS } from './avatars.js'
 import Artwork from './Artwork.jsx'
+import SpotifyPlayer from './SpotifyPlayer.jsx'
 import { completeSpotifyAuth, disconnectSpotify, getTopTracks, searchSpotifyTracks, spotifyConnected, startSpotifyAuth } from './spotify.js'
 
 function routeId() {
@@ -43,6 +44,8 @@ export default function Prototype() {
   const [overlay, setOverlay] = useState(false)
   const [flashing, setFlashing] = useState(false)
   const [notice, setNotice] = useState(null)
+  const [playRequest, setPlayRequest] = useState(null)
+  const [playback, setPlayback] = useState(null)
   const [themePreference, setThemePreference] = useState(() => localStorage.getItem('melody-hifi-theme') || 'system')
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('melody-hifi-theme')
@@ -122,6 +125,8 @@ export default function Prototype() {
   function dismiss() { if (id.startsWith('drop-')) closeDrop(); else back() }
   function step(direction) { navigate(FRAMES[(frame.n - 1 + direction + FRAMES.length) % FRAMES.length].id) }
   function restart() {
+    setPlayRequest(null)
+    setPlayback(null)
     setState({ ...initState(), spotify: spotifyConnected() })
     navigate('signin')
     setPanelOpen(false)
@@ -246,7 +251,6 @@ export default function Prototype() {
   function action(name, key) {
     switch (name) {
       case 'theme': changeTheme(darkMode ? 'light' : 'dark'); break
-      case 'play': navigate('song'); break
       case 'chip': mutate(next => { if (next.chips.has(key)) next.chips.delete(key); else next.chips.add(key) }); break
       case 'like': mutate(next => { const like = next.likes[key]; like.on = !like.on; like.n += like.on ? 1 : -1 }); break
       case 'accept':
@@ -339,6 +343,13 @@ export default function Prototype() {
       return
     }
     if (target.disabled) return
+    if (target.dataset.action === 'play') {
+      const track = state.catalog.find(item => item.id === target.dataset.trackId) ||
+        state.searchResults.find(item => item.id === target.dataset.trackId)
+      if (!track) { toast('This song is not available. Please choose another song.'); return }
+      setPlayRequest({ track })
+      return
+    }
     if (target.dataset.trackId) {
       const track = state.catalog.find(item => item.id === target.dataset.trackId) ||
         state.searchResults.find(item => item.id === target.dataset.trackId)
@@ -414,7 +425,7 @@ export default function Prototype() {
     }
   }
 
-  const markup = createScreenMarkup(id, { ...state, darkMode })
+  const markup = createScreenMarkup(id, { ...state, darkMode, playback })
   const screenDocument = new DOMParser().parseFromString(markup, 'text/html')
   const targets = [...screenDocument.querySelectorAll('[data-go]')].filter((element, index, elements) =>
     element.dataset.go !== id && elements.findIndex(other => other.dataset.go === element.dataset.go) === index)
@@ -512,7 +523,13 @@ export default function Prototype() {
         <div className="frame-box" id="frameBox" ref={frameBoxRef}>
           <div className="frame-label"><span><b id="frameName">{frame.name}</b></span><span id="frameNum">{String(frame.n).padStart(2, '0')} / {FRAMES.length}</span></div>
           <div className={`frame${hotspots || flashing ? ' hot' : ''}`} id="frame">
-            <div key={id} className={`screen${animation ? ` a-${animation}` : ''}`} id="screen" data-screen={id} ref={screenRef} onClick={handleClick} onSubmit={handleSubmit}>{content}</div>
+            <div key={id} className={`screen${animation ? ` a-${animation}` : ''}${playRequest ? ' has-player' : ''}`} id="screen" data-screen={id} ref={screenRef} onClick={handleClick} onSubmit={handleSubmit}>{content}</div>
+            {playRequest && <div className={`player-position${TABS.includes(id) ? ' above-tabs' : screenDocument.querySelector('.sheet-foot,.composer-bar') ? ' above-footer' : ''}`}>
+              <SpotifyPlayer request={playRequest} onPlayback={setPlayback} onClose={() => {
+                setPlayRequest(null)
+                setPlayback(null)
+              }} />
+            </div>}
             <img className="orig" id="orig" src={`${import.meta.env.BASE_URL}wireframes/${frame.file}`} alt={`Original ${frame.name} wireframe`} hidden={!overlay} />
             <div className={`toast${notice ? ' show' : ''}`} id="toast" role="status" aria-live="polite" style={{ bottom: screenDocument.querySelector('.tabbar,.sheet-foot,.composer-bar') ? undefined : '40px' }}>{notice && <span>{notice.message}</span>}</div>
           </div>
