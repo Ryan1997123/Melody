@@ -29,6 +29,42 @@ test('Discover track rows give ranks and play controls 8px of edge spacing', asy
 })
 
 for (const theme of ['light', 'dark']) {
+  test(`Drop a song keeps covers and buttons contained in ${theme} mode`, async ({ page }, testInfo) => {
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto('/#/drop-pick')
+      const rows = page.locator('#screen .rows > li')
+      for (const row of await rows.all()) {
+        const rowBox = await row.boundingBox()
+        const coverBox = await row.locator('.art').boundingBox()
+        const playBox = await row.locator('.play').boundingBox()
+        expect(coverBox.x - rowBox.x).toBe(8)
+        expect(rowBox.x + rowBox.width - playBox.x - playBox.width).toBe(8)
+        expect(coverBox.width).toBe(52)
+        expect(playBox.width).toBe(44)
+        expect(await row.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+      }
+      await rows.filter({ hasText: 'Pink Pony Club' }).locator('.row-main').click()
+      await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'drop-why')
+      const picked = page.locator('.picked')
+      const pickedBox = await picked.boundingBox()
+      const coverBox = await picked.locator('.art').boundingBox()
+      const change = picked.getByRole('button', { name: 'Change', exact: true })
+      const buttonBox = await change.boundingBox()
+      const textBox = await picked.locator('.tt').boundingBox()
+      expect(coverBox.width).toBe(56)
+      expect(textBox.x - coverBox.x - coverBox.width).toBe(12)
+      expect(buttonBox.x - textBox.x - textBox.width).toBeCloseTo(12, 0)
+      expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(pickedBox.x + pickedBox.width)
+      expect(await picked.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+      expect(await change.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath(`drop-why-${theme}-${width}.png`), animations: 'disabled', scale: 'css' })
+      await change.click()
+      await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'drop-pick')
+    }
+  })
+
   test(`${theme} surfaces and accents match the exported Figma frames`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })

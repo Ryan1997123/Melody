@@ -447,7 +447,11 @@ body { background: var(--canvas); }
 .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border: var(--b); background: #ff7ac6; font: 700 27px/1 var(--f-ui); }
 .tagline { max-width: 29ch; font: 500 16px/1.5 var(--f-body); }
 .search-note { margin-top: -12px !important; color: var(--mute); font-size: 12px; }
-.discover-results .rows > li { padding-inline: 8px; }
+.discover-results .rows > li,
+.screen[data-screen="drop-pick"] .rows > li { padding-inline: 8px; }
+.screen[data-screen="drop-why"] .picked { gap: 12px; }
+.screen[data-screen="drop-why"] .picked .tt { flex: 1; }
+.screen[data-screen="drop-why"] .picked .btn { flex: none; }
 .prototype-switch { color: var(--mute); font-size: 12px; text-align: center; }
 .prototype-switch a, .text-link { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .cover { width: 250px; height: 250px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: 10px 10px 0 var(--ink); }

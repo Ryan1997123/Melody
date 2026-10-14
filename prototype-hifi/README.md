@@ -43,6 +43,9 @@ These color checks do not imply pixel-identical layouts or content: the coded
 prototype also includes requested controls, real artwork, and demo notices.
 Discover track rows use 8px horizontal padding to give ranks and 44px Play
 controls breathing room without changing the square, bordered list style.
+Drop's song-picker rows use the same padding. The selected-song summary keeps
+its artwork and Change button full-size while long titles truncate within the
+remaining space, preventing overflow on narrow phones.
 
 ## Account and Settings prototype flows
 
