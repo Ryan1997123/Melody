@@ -46,6 +46,11 @@ controls breathing room without changing the square, bordered list style.
 Drop's song-picker rows use the same padding. The selected-song summary keeps
 its artwork and Change button full-size while long titles truncate within the
 remaining space, preventing overflow on narrow phones.
+Discover requests up to 50 personal Spotify top tracks (short-term listening),
+and the entire list scrolls within the screen. Without Spotify top tracks it
+shows all 18 curated demo songs, explicitly not live chart rankings.
+Mood filters use curated tags only; untagged Spotify tracks are counted and
+hidden while filtering, and return when moods are cleared.
 
 ## Account and Settings prototype flows
 

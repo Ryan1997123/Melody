@@ -1,5 +1,5 @@
 import { AV_COLORS, AV_TABS, initialAvatar, avatarLabel, avatarSVG, personAvatarSVG } from './avatars.js';
-import { DISCOVER_MOODS, FIGMA_CHARTS, FIGMA_CHAT, FIGMA_SONG, FIGMA_TRENDING, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
+import { DISCOVER_MOODS, FIGMA_CHAT, FIGMA_SONG, FIGMA_TRENDING, discoverMoodTags, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
 import { accountFrames, accountScreens, accountState } from '../../prototype-react/src/account-flows.js'
 import welcomeLemon from '../../other-files/svgs/Decoration.svg?raw'
 import welcomeMint from '../../other-files/svgs/Decoration-1.svg?raw'
@@ -111,9 +111,11 @@ export function createScreenMarkup(id, S) {
   const selectedTrack = trackById(S.selectedTrackId)
   const myComments = S.songComments.filter(comment => comment.mine)
   const searching = Boolean(S.searchQuery)
+  const discoverSource = searching && S.searchSource === 'spotify' ? S.searchResults :
+    searching ? S.catalog : (S.topTracks.length ? S.topTracks : SAMPLE_TRACKS)
+  const untaggedTracks = discoverSource.filter(track => !discoverMoodTags(track).length).length
   const discoverTracks = filterDiscoverTracks(
-    searching && S.searchSource === 'spotify' ? S.searchResults :
-      searching ? S.catalog : (S.topTracks.length ? S.topTracks : FIGMA_CHARTS),
+    discoverSource,
     searching && S.searchSource !== 'spotify' ? S.searchQuery : '',
     S.chips,
   )
@@ -183,6 +185,7 @@ export function createScreenMarkup(id, S) {
       ${!S.spotify ? '<p class="search-note">Search Melody’s demo songs, or connect Spotify from Profile to search its catalog.</p>' : ''}
       <div class="chips">${DISCOVER_MOODS.map(c => `<button class="chip" type="button" data-action="chip" data-key="${c}" aria-pressed="${S.chips.has(c)}">${c}</button>`).join('')}</div>
       ${S.chips.size ? '<p class="search-note">Matches any selected mood. Only songs with curated Melody mood tags are included.</p>' : ''}
+      ${S.chips.size && untaggedTracks ? `<p class="search-note" role="status">${untaggedTracks} Spotify ${untaggedTracks === 1 ? 'track has' : 'tracks have'} no Melody mood tags and ${untaggedTracks === 1 ? 'is' : 'are'} hidden by these filters. Clear the moods to see all tracks.</p>` : ''}
       ${S.searchError ? `<p class="discover-error" role="alert">${esc(S.searchError)}</p>` : ''}
       ${S.searchLoading ? '<p role="status">Searching Spotify…</p>' : ''}
       ${searching ? `<section class="sec discover-results" aria-label="Search results"><h2 class="h-sec">${S.searchSource === 'spotify' ? 'Spotify search results' : 'Matching songs in Melody'}</h2>${discoverTracks.length ? `<ul class="rows">${discoverTracks.map(track => songRow(`search-${track.id}`, { track })).join('')}</ul>` : '<p role="status">No songs match your search and selected moods. Try another search or clear a mood.</p>'}<button class="link" type="button" data-action="clearSearch">Clear search</button></section>` : ''}
@@ -192,7 +195,8 @@ export function createScreenMarkup(id, S) {
         <button class="talk-item" type="button" data-go="song" data-track-id="${FIGMA_CHAT.id}"><b>Nights · Frank Ocean</b> <span>(1 comment)</span></button>
       </section>
       ${!searching ? `<section class="sec discover-results"><h2 class="h-sec">${S.topTracks.length ? 'Your top tracks' : 'Top charts'}</h2>
-        ${discoverTracks.length ? `<ol class="rows">${discoverTracks.slice(0, 5).map((track, index) => songRow(`chart${index + 1}`, { rank: index + 1, track })).join('')}</ol>` : '<p role="status">No songs match these moods. Clear a mood to see more songs.</p>'}
+        <p class="lead">${S.topTracks.length ? 'Your Spotify favorites from the past few weeks' : 'Melody’s curated demo selection, not live Spotify chart rankings'} · ${discoverTracks.length} ${discoverTracks.length === 1 ? 'song' : 'songs'}</p>
+        ${discoverTracks.length ? `<ol class="rows">${discoverTracks.map((track, index) => songRow(`chart${index + 1}`, { rank: index + 1, track })).join('')}</ol>` : '<p role="status">No songs match these moods. Clear a mood to see more songs.</p>'}
       </section>` : ''}
     </div>${tabbar('discover')}</div>`,
 

@@ -57,10 +57,14 @@ export const SAMPLE_TRACKS = [
   },
 ]
 
+export function discoverMoodTags(track) {
+  return track.moods || SAMPLE_TRACKS.find(sample => sample.id === track.id)?.moods || []
+}
+
 export function filterDiscoverTracks(tracks, query, moods) {
   const normalized = query.trim().toLowerCase()
   return tracks.filter(track => {
-    const tags = track.moods || SAMPLE_TRACKS.find(sample => sample.id === track.id)?.moods || []
+    const tags = discoverMoodTags(track)
     const matchesMood = !moods.size || tags.some(mood => moods.has(mood))
     const matchesQuery = !normalized || `${track.title} ${track.artist} ${track.album}`.toLowerCase().includes(normalized)
     return matchesMood && matchesQuery

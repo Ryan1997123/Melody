@@ -171,7 +171,7 @@ export async function searchSpotifyTracks(query) {
 }
 
 export async function getTopTracks() {
-  const result = await spotifyRequest('me/top/tracks?limit=5&time_range=short_term')
+  const result = await spotifyRequest('me/top/tracks?limit=50&time_range=short_term')
   if (!Array.isArray(result.items)) throw new Error('Spotify returned invalid top tracks. Please try again.')
   return result.items.map(spotifyTrack)
 }

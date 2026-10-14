@@ -1,6 +1,57 @@
 import { test, expect } from '@playwright/test'
 import { FRAMES } from '../src/screens.js'
 import { initialAvatar } from '../src/avatars.js'
+import { SAMPLE_TRACKS, filterDiscoverTracks } from '../src/data.js'
+
+test('Discover requests 50 Spotify top tracks, scrolls to the last song, and explains untagged moods', async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('melody-hifi-spotify-session', JSON.stringify({
+      access_token: 'test-token', expires_at: Date.now() + 3600000,
+    }))
+  })
+  let requestedLimit
+  await page.route('https://api.spotify.com/v1/me/top/tracks**', route => {
+    requestedLimit = new URL(route.request().url()).searchParams.get('limit')
+    return route.fulfill({ json: { items: Array.from({ length: 50 }, (_, index) => ({
+      id: index < 2 ? SAMPLE_TRACKS[index].id : `spotify-top-${index + 1}`,
+      name: index < 2 ? SAMPLE_TRACKS[index].title : `Spotify favorite ${index + 1}`,
+      artists: [{ name: 'Test artist' }],
+      album: { name: 'Test album', images: [] },
+      external_urls: { spotify: `https://open.spotify.com/track/spotify-top-${index + 1}` },
+    })) } })
+  })
+  await page.goto('/#/discover')
+  const results = page.locator('.discover-results')
+  const rows = results.locator('li')
+  await expect(results.getByRole('heading')).toHaveText('Your top tracks')
+  await expect(rows).toHaveCount(50)
+  expect(requestedLimit).toBe('50')
+  await expect(rows.last().locator('.rank')).toHaveText('50')
+  await rows.last().scrollIntoViewIfNeeded()
+  await expect(rows.last().locator('.play')).toBeInViewport()
+  expect(await page.locator('#screen .scroll').evaluate(el => el.scrollTop)).toBeGreaterThan(0)
+  await rows.last().locator('.row-main').click()
+  await expect(page.locator('.song-title')).toHaveText('Spotify favorite 50')
+  await page.goBack()
+  await page.getByRole('button', { name: 'Gym', exact: true }).click()
+  await expect(rows).toHaveCount(1)
+  await expect(results).toContainText('Espresso')
+  await expect(page.locator('#screen')).toContainText('48 Spotify tracks have no Melody mood tags')
+  await page.getByRole('button', { name: 'Gym', exact: true }).click()
+  await expect(rows).toHaveCount(50)
+  await expect(page.locator('#screen')).not.toContainText('hidden by these filters')
+})
+
+test('Disconnected Discover shows every curated demo song and scrolls beyond the first five', async ({ page }) => {
+  await page.goto('/#/discover')
+  const rows = page.locator('.discover-results li')
+  await expect(rows).toHaveCount(18)
+  await expect(page.locator('.discover-results')).toContainText('not live Spotify chart rankings')
+  await rows.last().scrollIntoViewIfNeeded()
+  await expect(rows.last()).toBeInViewport()
+  await rows.last().locator('.row-main').click()
+  await expect(page.locator('.song-title')).toHaveText('Sunflower')
+})
 
 test('optional Spotify authorization restores onboarding identity, avatar, and genres', async ({ page }) => {
   const avatar = { ...initialAvatar('demo'), hair: 2 }
@@ -26,11 +77,11 @@ test('Discover searches local titles, artists, and albums and combines mood filt
   await page.goto('/#/discover')
   const results = page.locator('.discover-results')
   const search = page.getByRole('searchbox', { name: 'Search songs or artists' })
-  await expect(results.locator('li')).toHaveCount(5)
+  await expect(results.locator('li')).toHaveCount(SAMPLE_TRACKS.length)
   await page.getByRole('button', { name: 'Gym', exact: true }).click()
-  await expect(results.locator('li')).toHaveCount(2)
+  await expect(results.locator('li')).toHaveCount(filterDiscoverTracks(SAMPLE_TRACKS, '', new Set(['Gym'])).length)
   await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
-  await expect(results.locator('li')).toHaveCount(5)
+  await expect(results.locator('li')).toHaveCount(filterDiscoverTracks(SAMPLE_TRACKS, '', new Set(['Gym', 'Rainy day'])).length)
   await search.fill('Coldplay')
   await page.getByRole('button', { name: 'Search', exact: true }).click()
   await expect(results.locator('li')).toHaveCount(1)
@@ -48,7 +99,7 @@ test('Discover searches local titles, artists, and albums and combines mood filt
   }
   await page.getByRole('button', { name: 'Clear search', exact: true }).click()
   await expect(search).toHaveValue('')
-  await expect(results.locator('li')).toHaveCount(5)
+  await expect(results.locator('li')).toHaveCount(SAMPLE_TRACKS.length)
 })
 
 test('Discover Spotify search errors remain readable, can be retried, and filter curated remote tracks', async ({ page }) => {
@@ -112,7 +163,7 @@ test('Discover ignores an older Spotify response after a newer search', async ({
   await expect(page.locator('.discover-error')).toHaveCount(0)
   await expect(search).toHaveValue('new')
   await page.getByRole('button', { name: 'Clear search', exact: true }).click()
-  await expect(page.locator('.discover-results li')).toHaveCount(5)
+  await expect(page.locator('.discover-results li')).toHaveCount(SAMPLE_TRACKS.length)
 })
 
 for (const failure of [
