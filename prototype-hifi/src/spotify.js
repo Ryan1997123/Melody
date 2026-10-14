@@ -47,14 +47,43 @@ export async function startSpotifyAuth() {
   window.location.assign(`https://accounts.spotify.com/authorize?${params}`)
 }
 
+async function spotifyResponse(response) {
+  const text = await response.text()
+  let body
+  try {
+    body = JSON.parse(text)
+  } catch {
+    if (response.ok) {
+      throw new Error('Spotify returned an invalid response. Please try again.')
+    }
+  }
+  if (!response.ok) {
+    const message = body?.error_description || body?.error?.message ||
+      (typeof body?.error === 'string' ? body.error : '') ||
+      (body === undefined ? text.trim() : '') ||
+      'Spotify could not complete that request.'
+    const guidance = /premium/i.test(message)
+      ? ' Spotify requires an active Premium subscription for the app owner in development mode.'
+      : ''
+    throw new Error(`Spotify (${response.status}): ${message}${guidance}`)
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('Spotify returned an invalid response. Please try again.')
+  }
+  return body
+}
+
 async function requestToken(params) {
   const response = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(params),
   })
-  const body = await response.json()
-  if (!response.ok) throw new Error(body.error_description || body.error || 'Spotify sign-in failed.')
+  const body = await spotifyResponse(response)
+  if (typeof body.access_token !== 'string' || !body.access_token ||
+      !Number.isFinite(body.expires_in) || body.expires_in <= 0) {
+    throw new Error('Spotify returned an invalid sign-in response. Please connect again.')
+  }
   const previous = params.grant_type === 'refresh_token' ? readSession() : null
   const session = {
     ...body,
@@ -129,12 +158,7 @@ async function spotifyRequest(path) {
   const response = await fetch(`https://api.spotify.com/v1/${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  const body = await response.json()
-  if (!response.ok) {
-    const message = body.error?.message || 'Spotify could not complete that request.'
-    throw new Error(message)
-  }
-  return body
+  return spotifyResponse(response)
 }
 
 export async function searchSpotifyTracks(query) {

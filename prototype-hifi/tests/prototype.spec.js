@@ -1,6 +1,42 @@
 import { test, expect } from '@playwright/test'
 import { FRAMES } from '../src/screens.js'
 
+for (const failure of [
+  { endpoint: 'token', status: 403, body: 'Active Premium subscription required', expected: 'Spotify (403): Active Premium' },
+  { endpoint: 'tracks', status: 403, body: 'Active Premium subscription required', expected: 'Spotify (403): Active Premium' },
+  { endpoint: 'token', status: 400, body: JSON.stringify({ error: 'invalid_grant', error_description: 'Authorization code expired' }), expected: 'Authorization code expired' },
+  { endpoint: 'tracks', status: 403, body: JSON.stringify({ error: { message: 'User not registered in the Developer Dashboard' } }), expected: 'User not registered' },
+  { endpoint: 'tracks', status: 502, body: '', expected: 'Spotify (502): Spotify could not complete' },
+  { endpoint: 'token', status: 200, body: 'not valid JSON', expected: 'Spotify returned an invalid response' },
+]) {
+  test(`Spotify ${failure.endpoint} ${failure.status} error ${failure.expected} is readable and disconnect clears it`, async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('melody-hifi-spotify-state', 'test-state')
+      sessionStorage.setItem('melody-hifi-spotify-verifier', 'test-verifier')
+    })
+    await page.route('https://accounts.spotify.com/api/token', route => route.fulfill(
+      failure.endpoint === 'token'
+        ? { status: failure.status, body: failure.body, contentType: 'text/plain' }
+        : { json: { access_token: 'test-token', refresh_token: 'test-refresh', expires_in: 3600 } }))
+    await page.route('https://api.spotify.com/v1/me/top/tracks**', route => route.fulfill({
+      status: failure.status, body: failure.body, contentType: 'text/plain',
+    }))
+    await page.goto('/?code=test-code&state=test-state#/profile')
+    const alert = page.locator('.spot [role="alert"]')
+    await expect(alert).toContainText(failure.expected)
+    await expect(alert).not.toContainText('Unexpected token')
+    if (failure.body.includes('Premium')) {
+      await expect(alert).toContainText('app owner in development mode')
+    }
+    if (failure.endpoint === 'tracks') {
+      await page.getByRole('button', { name: 'Disconnect', exact: true }).click()
+      await expect(alert).toHaveCount(0)
+    }
+    await expect(page.getByRole('button', { name: 'Connect Spotify', exact: true })).toBeVisible()
+    expect(await page.evaluate(() => sessionStorage.getItem('melody-hifi-spotify-session'))).toBeNull()
+  })
+}
+
 test('Spotify callback exchanges a code once and updates the connected profile', async ({ page }) => {
   let tokenRequests = 0
   await page.addInitScript(() => {

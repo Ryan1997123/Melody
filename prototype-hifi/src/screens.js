@@ -65,6 +65,7 @@ export function initState() {
     likes: { p1: { n: 4, on: false }, p2: { n: 2, on: false }, p3: { n: 7, on: false } },
     unread: { c1: true, c3: true },
     spotify: false,
+    spotifyError: '',
     songComments: [
       { who: '@pip', t: '2h', text: 'This song made the whole train ride feel like a movie.' },
       { who: '@jules', t: '1d', text: 'Have had this on repeat all week.' },
@@ -193,6 +194,7 @@ export function createScreenMarkup(id, S) {
       </div>
       <section class="card sh spot">
         <h3>Spotify</h3>
+        ${S.spotifyError ? `<p role="alert">${esc(S.spotifyError)}</p>` : ''}
         ${S.spotify
           ? `<p>Connected. Your top tracks show on your profile and in Discover.</p><button class="btn sh" type="button" data-action="spotify">Disconnect</button>`
           : `<p>Find songs, see your top tracks, and play music with Spotify.</p><button class="btn mint sh" type="button" data-action="spotify">Connect Spotify</button>`}

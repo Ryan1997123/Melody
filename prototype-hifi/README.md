@@ -45,6 +45,10 @@ Codespaces forwarded URL, register that exact HTTPS URL instead.
 The app owner needs Spotify Premium while the Spotify app is in development
 mode. Development mode allows up to five authenticated users, who must be
 added under Settings > Users Management in the Spotify Developer Dashboard.
+Spotify errors appear in the Profile Spotify section as well as a notification.
+If Spotify reports "Active Premium" or a similar Premium restriction, the app
+owner must have an active Premium subscription; reconnecting cannot bypass
+that development-mode requirement.
 
 For GitHub Pages, add the Pages URL
 `https://ryan1997123.github.io/Melody/hifi/` to the Spotify app's redirect

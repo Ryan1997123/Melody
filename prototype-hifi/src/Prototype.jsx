@@ -205,6 +205,7 @@ export default function Prototype() {
         if (active) {
           mutate(next => {
             next.spotify = true
+            next.spotifyError = ''
             next.topTracks = tracks
             next.catalog = [...tracks, ...next.catalog.filter(track => !tracks.some(top => top.id === track.id))]
           })
@@ -212,7 +213,10 @@ export default function Prototype() {
         }
       } catch (error) {
         if (active) {
-          mutate(next => { next.spotify = spotifyConnected() })
+          mutate(next => {
+            next.spotify = spotifyConnected()
+            next.spotifyError = error.message
+          })
           toast(error.message)
         }
       }
@@ -264,10 +268,13 @@ export default function Prototype() {
       case 'spotify':
         if (state.spotify) {
           disconnectSpotify()
-          mutate(next => { next.spotify = false; next.topTracks = []; next.searchResults = [] })
+          mutate(next => { next.spotify = false; next.spotifyError = ''; next.topTracks = []; next.searchResults = [] })
           toast('Spotify disconnected')
         } else {
-          startSpotifyAuth().catch(error => toast(error.message))
+          startSpotifyAuth().catch(error => {
+            mutate(next => { next.spotifyError = error.message })
+            toast(error.message)
+          })
         }
         break
       case 'pick': navigate('drop-why'); break
