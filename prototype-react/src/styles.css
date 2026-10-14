@@ -384,3 +384,6 @@ kbd { margin-left: auto; padding: 1px 6px; border: 1px solid var(--chrome-line);
 @media (prefers-reduced-motion: reduce) {
   .screen *, .toast, .btn { animation: none !important; transition: none !important; }
 }
+.prototype-switch { margin: 18px 0 0; color: var(--mute); font-size: 12px; text-align: center; }
+.prototype-switch a, .version-link { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.version-link { font-size: 12px; }

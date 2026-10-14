@@ -320,6 +320,7 @@ export default function Prototype() {
             <p className="eyebrow">Lo-fi prototype</p>
             <h1>Melody</h1>
             <p className="panel-sub">13 frames, one at a time. Tap through it like the real app, or jump to any frame here.</p>
+            <a className="version-link" href="./hifi/">Open hi-fi prototype</a>
           </div>
           <button className="panel-close" type="button" onClick={() => setPanelOpen(false)}>Done</button>
         </div>

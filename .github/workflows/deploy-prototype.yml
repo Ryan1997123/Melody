@@ -6,6 +6,7 @@ on:
       - copilot/change-prototype-screen-navigation
     paths:
       - prototype-react/**
+      - prototype-hifi/**
       - .github/workflows/deploy-prototype.yml
   workflow_dispatch:
 
@@ -30,13 +31,26 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: prototype-react/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            prototype-react/package-lock.json
+            prototype-hifi/package-lock.json
+      - run: npm ci
       - run: npm ci
         working-directory: prototype-react
       - run: npm run lint
         working-directory: prototype-react
       - run: npm run build
         working-directory: prototype-react
+      - run: npm ci
+        working-directory: prototype-hifi
+      - run: npm run lint
+        working-directory: prototype-hifi
+      - name: Build hi-fi prototype
+        run: npm run build -- --outDir ../prototype-react/dist/hifi --emptyOutDir false
+        working-directory: prototype-hifi
+        env:
+          VITE_SPOTIFY_CLIENT_ID: ${{ vars.SPOTIFY_CLIENT_ID }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

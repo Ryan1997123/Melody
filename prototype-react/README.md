@@ -64,9 +64,10 @@ the draft; Cancel discards it. Changes reset on refresh, like other prototype da
 ## Public Usability Testing
 
 The GitHub Pages workflow is `.github/workflows/deploy-prototype.yml` at the
-repository root. It builds only this prototype and publishes its `dist/` output.
-It runs on pushes to `copilot/change-prototype-screen-navigation` that change
-the prototype or workflow. Update its branch filter when moving development.
+repository root. It builds this prototype at the site root and the separate
+hi-fi prototype at `/hifi/` in the same Pages deployment. It runs on pushes to
+`copilot/change-prototype-screen-navigation` that change either prototype or
+the workflow. Update its branch filter when moving development.
 
 Before the first deployment, open the repository's Settings > Pages and select
 GitHub Actions as the build source. If the `github-pages` environment restricts

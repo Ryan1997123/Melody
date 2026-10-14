@@ -117,6 +117,7 @@ export function createScreenMarkup(id, S) {
         <button class="btn block" type="button" data-go="discover" data-mode="tab">Continue with Google</button>
       </div>
       <button class="link" type="button" data-missing="Create an account">New here? Create an account</button>
+      <p class="prototype-switch">Want to see the hi-fi version? <a href="./hifi/">Open hi-fi prototype</a></p>
     </div></div>`,
 
     discover: () => `<div class="scr"><div class="scroll">
