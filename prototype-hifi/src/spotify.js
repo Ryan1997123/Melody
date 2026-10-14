@@ -1,3 +1,5 @@
+import { spotifyTrack } from './data.js'
+
 const SESSION_KEY = 'melody-hifi-spotify-session'
 const STATE_KEY = 'melody-hifi-spotify-state'
 const VERIFIER_KEY = 'melody-hifi-spotify-verifier'
@@ -164,24 +166,12 @@ async function spotifyRequest(path) {
 export async function searchSpotifyTracks(query) {
   if (!query.trim()) return []
   const result = await spotifyRequest(`search?type=track&limit=8&q=${encodeURIComponent(query.trim())}`)
-  return result.tracks.items.map(track => ({
-    id: track.id,
-    title: track.name,
-    artist: track.artists.map(artist => artist.name).join(', '),
-    album: track.album.name,
-    image: track.album.images[0]?.url || '',
-    url: track.external_urls.spotify,
-  }))
+  if (!Array.isArray(result.tracks?.items)) throw new Error('Spotify returned invalid search results. Please try again.')
+  return result.tracks.items.map(spotifyTrack)
 }
 
 export async function getTopTracks() {
   const result = await spotifyRequest('me/top/tracks?limit=5&time_range=short_term')
-  return result.items.map(track => ({
-    id: track.id,
-    title: track.name,
-    artist: track.artists.map(artist => artist.name).join(', '),
-    album: track.album.name,
-    image: track.album.images[0]?.url || '',
-    url: track.external_urls.spotify,
-  }))
+  if (!Array.isArray(result.items)) throw new Error('Spotify returned invalid top tracks. Please try again.')
+  return result.items.map(spotifyTrack)
 }

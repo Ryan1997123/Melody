@@ -56,6 +56,7 @@ export default function Prototype() {
   const frameBoxRef = useRef(null)
   const screenRef = useRef(null)
   const spotifyAuthRef = useRef(null)
+  const searchRequestRef = useRef(0)
   const id = route.stack.at(-1)
   const frame = byId[id]
 
@@ -126,6 +127,7 @@ export default function Prototype() {
   function dismiss() { if (id.startsWith('drop-')) closeDrop(); else back() }
   function step(direction) { navigate(FRAMES[(frame.n - 1 + direction + FRAMES.length) % FRAMES.length].id) }
   function restart() {
+    searchRequestRef.current += 1
     setPlayRequest(null)
     setPlayback(null)
     setPlayerVisible(false)
@@ -258,6 +260,17 @@ export default function Prototype() {
     switch (name) {
       case 'theme': changeTheme(darkMode ? 'light' : 'dark'); break
       case 'chip': mutate(next => { if (next.chips.has(key)) next.chips.delete(key); else next.chips.add(key) }); break
+      case 'clearSearch':
+        searchRequestRef.current += 1
+        mutate(next => {
+          next.inputs['disc-q'] = ''
+          next.searchQuery = ''
+          next.searchResults = []
+          next.searchError = ''
+          next.searchLoading = false
+          next.searchSource = 'local'
+        })
+        break
       case 'like': mutate(next => { const like = next.likes[key]; like.on = !like.on; like.n += like.on ? 1 : -1 }); break
       case 'accept':
         mutate(next => { next.requests = []; next.friends += 1 })
@@ -267,8 +280,17 @@ export default function Prototype() {
       case 'read': mutate(next => { next.unread[key] = false }); break
       case 'spotify':
         if (state.spotify) {
+          searchRequestRef.current += 1
           disconnectSpotify()
-          mutate(next => { next.spotify = false; next.spotifyError = ''; next.topTracks = []; next.searchResults = [] })
+          mutate(next => {
+            next.spotify = false
+            next.spotifyError = ''
+            next.topTracks = []
+            next.searchResults = []
+            next.searchSource = 'local'
+            next.searchError = ''
+            next.searchLoading = false
+          })
           toast('Spotify disconnected')
         } else {
           startSpotifyAuth().catch(error => {
@@ -380,21 +402,37 @@ export default function Prototype() {
       case 'search': {
         const input = event.target.querySelector('input[type="search"]')
         const query = input?.value.trim() || ''
+        const requestId = ++searchRequestRef.current
+        mutate(next => {
+          next.searchQuery = query
+          next.searchResults = []
+          next.searchError = ''
+          next.searchSource = 'local'
+          next.searchLoading = Boolean(query && state.spotify)
+        })
         if (!query) {
-          mutate(next => { next.searchResults = [] })
           return
         }
         if (!state.spotify) {
-          toast('Connect Spotify from your profile to search songs.')
           return
         }
         searchSpotifyTracks(query).then(results => {
+          if (requestId !== searchRequestRef.current) return
           mutate(next => {
             next.searchResults = results
+            next.searchSource = 'spotify'
+            next.searchLoading = false
             next.catalog = [...results, ...next.catalog.filter(track => !results.some(result => result.id === track.id))]
           })
-          if (!results.length) toast('No Spotify tracks found for that search.')
-        }).catch(error => toast(error.message))
+        }).catch(error => {
+          if (requestId !== searchRequestRef.current) return
+          mutate(next => {
+            next.searchLoading = false
+            next.searchError = error.message
+            next.spotifyError = error.message
+          })
+          toast(error.message)
+        })
         break
       }
       case 'edit-profile': action('saveProfile'); break

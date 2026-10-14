@@ -1,6 +1,99 @@
 import { test, expect } from '@playwright/test'
 import { FRAMES } from '../src/screens.js'
 
+test('Discover searches local titles, artists, and albums and combines mood filters with any-match semantics', async ({ page }) => {
+  await page.goto('/#/discover')
+  const results = page.locator('.discover-results')
+  const search = page.getByRole('searchbox', { name: 'Search songs or artists' })
+  await expect(results.locator('li')).toHaveCount(5)
+  await page.getByRole('button', { name: 'Gym', exact: true }).click()
+  await expect(results.locator('li')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
+  await expect(results.locator('li')).toHaveCount(3)
+  await search.fill('Coldplay')
+  await page.getByRole('button', { name: 'Search', exact: true }).click()
+  await expect(results.locator('li')).toHaveCount(1)
+  await expect(results).toContainText('Yellow')
+  await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
+  await expect(results.locator('li')).toHaveCount(0)
+  await expect(results).toContainText('No songs match')
+  await page.getByRole('button', { name: 'Gym', exact: true }).click()
+  await expect(results.locator('li')).toHaveCount(1)
+  for (const query of ['blinding', 'After Hours']) {
+    await search.fill(query)
+    await search.press('Enter')
+    await expect(results.locator('li')).toHaveCount(1)
+    await expect(results).toContainText('Blinding Lights')
+  }
+  await page.getByRole('button', { name: 'Clear search', exact: true }).click()
+  await expect(search).toHaveValue('')
+  await expect(results.locator('li')).toHaveCount(5)
+})
+
+test('Discover Spotify search errors remain readable, can be retried, and filter curated remote tracks', async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('melody-hifi-spotify-session', JSON.stringify({
+      access_token: 'test-token', expires_at: Date.now() + 3600000,
+    }))
+  })
+  await page.route('https://api.spotify.com/v1/me/top/tracks**', route => route.fulfill({ json: { items: [] } }))
+  let rejected = true
+  await page.route('https://api.spotify.com/v1/search**', route => route.fulfill(rejected
+    ? { status: 403, body: 'Active Premium subscription required', contentType: 'text/plain' }
+    : { json: { tracks: { items: [
+      { id: '3AJwUDP919kvQ9QcozQPxg', name: 'Yellow', artists: [{ name: 'Coldplay' }], album: { name: 'Parachutes', images: [] }, external_urls: { spotify: 'https://open.spotify.com/track/3AJwUDP919kvQ9QcozQPxg' } },
+      { id: 'remote-track', name: 'Another song', artists: [{ name: 'New Artist' }], album: { name: 'New Album', images: [] }, external_urls: { spotify: 'https://open.spotify.com/track/remote-track' } },
+    ] } } }))
+  await page.goto('/#/discover')
+  const search = page.getByRole('searchbox', { name: 'Search songs or artists' })
+  const results = page.locator('.discover-results')
+  await search.fill('Yellow')
+  await search.press('Enter')
+  await expect(page.locator('.discover-error')).toContainText('Spotify (403): Active Premium')
+  await expect(page.locator('.discover-error')).not.toContainText('Unexpected token')
+  await expect(results).toContainText('Matching songs in Melody')
+  await expect(results.locator('li')).toHaveCount(1)
+  rejected = false
+  await search.press('Enter')
+  await expect(results).toContainText('Spotify search results')
+  await expect(results.locator('li')).toHaveCount(2)
+  await expect(page.locator('.discover-error')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
+  await expect(results.locator('li')).toHaveCount(1)
+  await results.locator('.tt b').click()
+  await expect(page.locator('.song-title')).toHaveText('Yellow')
+})
+
+test('Discover ignores an older Spotify response after a newer search', async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('melody-hifi-spotify-session', JSON.stringify({
+      access_token: 'test-token', expires_at: Date.now() + 3600000,
+    }))
+  })
+  await page.route('https://api.spotify.com/v1/me/top/tracks**', route => route.fulfill({ json: { items: [] } }))
+  let olderRoute
+  await page.route('https://api.spotify.com/v1/search**', async route => {
+    if (new URL(route.request().url()).searchParams.get('q') === 'old') {
+      olderRoute = route
+      return
+    }
+    await route.fulfill({ json: { tracks: { items: [] } } })
+  })
+  await page.goto('/#/discover')
+  const search = page.getByRole('searchbox', { name: 'Search songs or artists' })
+  await search.fill('old')
+  await search.press('Enter')
+  await expect.poll(() => Boolean(olderRoute)).toBe(true)
+  await search.fill('new')
+  await search.press('Enter')
+  await expect(page.locator('.discover-results')).toContainText('Spotify search results')
+  await olderRoute.fulfill({ status: 403, body: 'Old request error' })
+  await expect(page.locator('.discover-error')).toHaveCount(0)
+  await expect(search).toHaveValue('new')
+  await page.getByRole('button', { name: 'Clear search', exact: true }).click()
+  await expect(page.locator('.discover-results li')).toHaveCount(5)
+})
+
 for (const failure of [
   { endpoint: 'token', status: 403, body: 'Active Premium subscription required', expected: 'Spotify (403): Active Premium' },
   { endpoint: 'tracks', status: 403, body: 'Active Premium subscription required', expected: 'Spotify (403): Active Premium' },

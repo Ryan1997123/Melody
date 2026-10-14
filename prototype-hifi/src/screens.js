@@ -1,5 +1,5 @@
 import { AV_COLORS, AV_TABS, initialAvatar, avatarLabel, avatarSVG, personAvatarSVG } from './avatars.js';
-import { SAMPLE_TRACKS } from './data.js'
+import { DISCOVER_MOODS, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
 
 /* ---------- Frames ---------- */
 export const FRAMES = [
@@ -53,6 +53,10 @@ export function initState() {
     catalog: SAMPLE_TRACKS,
     selectedTrackId: SAMPLE_TRACKS[0].id,
     searchResults: [],
+    searchQuery: '',
+    searchSource: 'local',
+    searchLoading: false,
+    searchError: '',
     topTracks: [],
     handle: 'ryan',
     bio: 'Collecting songs that feel like a place you have been.',
@@ -95,6 +99,13 @@ export function createScreenMarkup(id, S) {
   const av = (sz, extra = '', seed = 'melody-friend') => `<span class="av ${sz < 44 ? 'thin' : ''}" style="--sz:${sz}px" ${extra}>${personAvatarSVG(seed)}</span>`;
   const trackById = trackId => S.catalog.find(track => track.id === trackId) || SAMPLE_TRACKS[0]
   const selectedTrack = trackById(S.selectedTrackId)
+  const searching = Boolean(S.searchQuery)
+  const discoverTracks = filterDiscoverTracks(
+    searching && S.searchSource === 'spotify' ? S.searchResults :
+      searching ? S.catalog : (S.topTracks.length ? S.topTracks : SAMPLE_TRACKS),
+    searching && S.searchSource !== 'spotify' ? S.searchQuery : '',
+    S.chips,
+  )
   const art = (sz, track = selectedTrack) =>
     `<span class="art" data-artwork="${esc(track.id)}" style="--sz:${sz}px"></span>`
   const play = (key, cls = '', track = selectedTrack) => {
@@ -106,7 +117,7 @@ export function createScreenMarkup(id, S) {
     const destination = opts.action ? `data-action="${opts.action}" data-key="${key}"` : 'data-go="song"'
     return `<li data-track-id="${esc(track.id)}" ${destination}><button class="row-main" type="button" data-track-id="${esc(track.id)}" ${destination}>${opts.rank ? `<span class="rank">${opts.rank}</span>` : ''}${art(52, track)}<span class="tt"><b>${esc(track.title)}</b><span>${esc(track.artist)}</span></span></button>${play(key, '', track)}</li>`
   }
-  const searchBox = (id, ph, form) => `<form class="search" data-form="${form}" role="search">${ic.search}<input id="${id}" type="search" placeholder="${ph}" value="${val(id)}" autocomplete="off" aria-label="${ph}"></form>`;
+  const searchBox = (id, ph, form) => `<form class="search" data-form="${form}" role="search">${ic.search}<input id="${id}" type="search" placeholder="${ph}" value="${val(id)}" autocomplete="off" aria-label="${ph}">${form === 'search' ? '<button class="search-submit" type="submit">Search</button>' : ''}</form>`;
   const themeToggle = () => `<button class="icon-btn" type="button" data-action="theme" aria-label="Dark mode" aria-pressed="${Boolean(S.darkMode)}" title="Switch to ${S.darkMode ? 'light' : 'dark'} mode">${ic.sun}</button>`
   const pageTitle = title => `<div class="title-row"><h1 class="h-page">${title}</h1>${themeToggle()}</div>`
   function tabbar(active) {
@@ -141,17 +152,20 @@ export function createScreenMarkup(id, S) {
     discover: () => `<div class="scr"><div class="scroll">
       <div class="head">${pageTitle('Discover')}<p class="lead">Find a song, hear a preview, read what people think.</p></div>
       ${searchBox('disc-q', 'Search songs or artists', 'search')}
-      ${!S.spotify ? '<p class="search-note">Connect Spotify from your profile to search and play your own catalog.</p>' : ''}
-      ${S.searchResults.length ? `<section class="sec"><h2 class="h-sec">Search results</h2><ul class="rows">${S.searchResults.map(track => songRow(`search-${track.id}`, { track })).join('')}</ul></section>` : ''}
-      <div class="chips">${['Rainy day', 'Gym', 'Road trip', 'Focus', 'Throwbacks'].map(c => `<button class="chip" type="button" data-action="chip" data-key="${c}" aria-pressed="${S.chips.has(c)}">${c}</button>`).join('')}</div>
+      ${!S.spotify ? '<p class="search-note">Search Melody’s demo songs, or connect Spotify from Profile to search its catalog.</p>' : ''}
+      <div class="chips">${DISCOVER_MOODS.map(c => `<button class="chip" type="button" data-action="chip" data-key="${c}" aria-pressed="${S.chips.has(c)}">${c}</button>`).join('')}</div>
+      ${S.chips.size ? '<p class="search-note">Matches any selected mood. Only songs with curated Melody mood tags are included.</p>' : ''}
+      ${S.searchError ? `<p class="discover-error" role="alert">${esc(S.searchError)}</p>` : ''}
+      ${S.searchLoading ? '<p role="status">Searching Spotify…</p>' : ''}
+      ${searching ? `<section class="sec discover-results" aria-label="Search results"><h2 class="h-sec">${S.searchSource === 'spotify' ? 'Spotify search results' : 'Matching songs in Melody'}</h2>${discoverTracks.length ? `<ul class="rows">${discoverTracks.map(track => songRow(`search-${track.id}`, { track })).join('')}</ul>` : '<p role="status">No songs match your search and selected moods. Try another search or clear a mood.</p>'}<button class="link" type="button" data-action="clearSearch">Clear search</button></section>` : ''}
       <section class="card sh fill talk">
         <h2 class="h-card">Your friends are talking about</h2>
         <button class="talk-item" type="button" data-go="song" data-track-id="${esc(S.catalog[0].id)}"><b>${esc(S.catalog[0].title)} · ${esc(S.catalog[0].artist)}</b> <span>(3 comments)</span></button>
         <button class="talk-item" type="button" data-go="song" data-track-id="${esc(S.catalog[1 % S.catalog.length].id)}"><b>${esc(S.catalog[1 % S.catalog.length].title)} · ${esc(S.catalog[1 % S.catalog.length].artist)}</b> <span>(1 comment)</span></button>
       </section>
-      <section class="sec"><h2 class="h-sec">Top charts</h2>
-        <ol class="rows">${(S.topTracks.length ? S.topTracks : S.catalog).slice(0, 5).map((track, index) => songRow(`chart${index + 1}`, { rank: index + 1, track })).join('')}</ol>
-      </section>
+      ${!searching ? `<section class="sec discover-results"><h2 class="h-sec">${S.topTracks.length ? 'Your top tracks' : 'Top charts'}</h2>
+        ${discoverTracks.length ? `<ol class="rows">${discoverTracks.slice(0, 5).map((track, index) => songRow(`chart${index + 1}`, { rank: index + 1, track })).join('')}</ol>` : '<p role="status">No songs match these moods. Clear a mood to see more songs.</p>'}
+      </section>` : ''}
     </div>${tabbar('discover')}</div>`,
 
     friends: () => `<div class="scr"><div class="scroll">

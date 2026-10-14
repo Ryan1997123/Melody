@@ -60,6 +60,19 @@ than pretending to connect.
 After connecting, Discover can search Spotify tracks and load the account's
 recent top tracks. Album art is read from Spotify's track metadata or public
 oEmbed response, and the song screen uses Spotify's official embedded player.
+Submit Discover search with Enter or the Search button. Without a connection,
+it searches Melody's known songs by title, artist, or album. Connected searches
+request Spotify results. If Spotify rejects the request, the actual error stays
+visible and any local matches are explicitly labelled "Matching songs in Melody".
+Clear search restores the main list.
+
+Discover mood chips filter songs using curated Melody tags. Multiple chips
+match **any** selected mood, and combine with the submitted search. Untagged
+Spotify tracks are excluded when a mood is selected; these are not Spotify
+audio-feature recommendations. Deselect the chips to see all search results.
+Empty results include an explanation, and outdated search responses cannot
+replace a newer search.
+
 Discover's Play buttons start or pause the selected track in the background
 without opening song details. The row shows Pause only when Spotify reports
 playback. Clicking the artwork, title, artist, or rest of the song row opens
