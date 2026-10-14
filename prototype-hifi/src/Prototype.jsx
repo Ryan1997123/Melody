@@ -46,6 +46,7 @@ export default function Prototype() {
   const [notice, setNotice] = useState(null)
   const [playRequest, setPlayRequest] = useState(null)
   const [playback, setPlayback] = useState(null)
+  const [playerVisible, setPlayerVisible] = useState(false)
   const [themePreference, setThemePreference] = useState(() => localStorage.getItem('melody-hifi-theme') || 'system')
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('melody-hifi-theme')
@@ -127,6 +128,7 @@ export default function Prototype() {
   function restart() {
     setPlayRequest(null)
     setPlayback(null)
+    setPlayerVisible(false)
     setState({ ...initState(), spotify: spotifyConnected() })
     navigate('signin')
     setPanelOpen(false)
@@ -523,11 +525,12 @@ export default function Prototype() {
         <div className="frame-box" id="frameBox" ref={frameBoxRef}>
           <div className="frame-label"><span><b id="frameName">{frame.name}</b></span><span id="frameNum">{String(frame.n).padStart(2, '0')} / {FRAMES.length}</span></div>
           <div className={`frame${hotspots || flashing ? ' hot' : ''}`} id="frame">
-            <div key={id} className={`screen${animation ? ` a-${animation}` : ''}${playRequest ? ' has-player' : ''}`} id="screen" data-screen={id} ref={screenRef} onClick={handleClick} onSubmit={handleSubmit}>{content}</div>
-            {playRequest && <div className={`player-position${TABS.includes(id) ? ' above-tabs' : screenDocument.querySelector('.sheet-foot,.composer-bar') ? ' above-footer' : ''}`}>
-              <SpotifyPlayer request={playRequest} onPlayback={setPlayback} onClose={() => {
+            <div key={id} className={`screen${animation ? ` a-${animation}` : ''}${playerVisible ? ' has-player' : ''}`} id="screen" data-screen={id} ref={screenRef} onClick={handleClick} onSubmit={handleSubmit}>{content}</div>
+            {playRequest && <div aria-hidden={!playerVisible} inert={!playerVisible} className={`player-position${!playerVisible ? ' background-player' : ''}${TABS.includes(id) ? ' above-tabs' : screenDocument.querySelector('.sheet-foot,.composer-bar') ? ' above-footer' : ''}`}>
+              <SpotifyPlayer request={playRequest} onPlayback={setPlayback} onVisibility={setPlayerVisible} onClose={() => {
                 setPlayRequest(null)
                 setPlayback(null)
+                setPlayerVisible(false)
               }} />
             </div>}
             <img className="orig" id="orig" src={`${import.meta.env.BASE_URL}wireframes/${frame.file}`} alt={`Original ${frame.name} wireframe`} hidden={!overlay} />

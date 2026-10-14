@@ -56,12 +56,17 @@ than pretending to connect.
 After connecting, Discover can search Spotify tracks and load the account's
 recent top tracks. Album art is read from Spotify's track metadata or public
 oEmbed response, and the song screen uses Spotify's official embedded player.
-Discover's Play buttons start or pause the selected track in a small official
-Spotify player without opening song details. Clicking the artwork, title,
-artist, or rest of the song row opens its details instead. The player stays
-available as you navigate until you close it. Playback and preview availability
-are controlled by Spotify; if a browser blocks automatic playback, use the
-visible Spotify player controls. No additional playback permissions are requested.
+Discover's Play buttons start or pause the selected track in the background
+without opening song details. The row shows Pause only when Spotify reports
+playback. Clicking the artwork, title, artist, or rest of the song row opens
+its details instead. Playback continues as you navigate.
+
+The official Spotify player remains mounted but out of view during background
+playback. If playback does not start within three seconds of a play request,
+its controls appear for an extra tap; they hide again once Spotify reports
+playback. Loading errors also reveal the player with an explanation.
+Playback and preview availability are controlled by Spotify. No additional
+playback permissions are requested.
 
 Replay Sleeve was a visual reference, not an artwork source; it is a native
 player and does not expose a public artwork API for this browser prototype.

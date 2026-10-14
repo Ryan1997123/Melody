@@ -122,7 +122,7 @@ test('Spotify song details and edit profile work', async ({ page }) => {
   await expect(page.locator('.me-card p')).toHaveText('Songs make a home wherever you are.')
 })
 
-async function mockSpotifyPlayer(page) {
+async function mockSpotifyPlayer(page, blocked = false) {
   await page.route('https://open.spotify.com/embed/iframe-api/v1', route => route.fulfill({
     contentType: 'application/javascript',
     body: `
@@ -136,12 +136,14 @@ async function mockSpotifyPlayer(page) {
           let uri = options.uri;
           let paused = true;
           const update = () => listeners.playback_update?.({ data: { playingURI: uri, isPaused: paused } });
+          window.spotifyStartPlayback = () => { paused = false; update(); };
+          window.spotifyEndPlayback = () => { paused = true; update(); };
           callback({
             addListener(name, listener) {
               listeners[name] = listener;
               if (name === 'ready') setTimeout(listener, 0);
             },
-            play() { window.spotifyCommands.push(['play', uri]); paused = false; update(); },
+            play() { window.spotifyCommands.push(['play', uri]); if (!${blocked}) { paused = false; update(); } },
             togglePlay() { window.spotifyCommands.push(['toggle', uri]); paused = !paused; update(); },
             loadEntity(next) { window.spotifyCommands.push(['load', next]); uri = next; },
             destroy() { window.spotifyCommands.push(['destroy', uri]); frame.remove(); },
@@ -160,13 +162,13 @@ test('list playback stays on Discover, pauses, changes tracks, and preserves det
   const firstPlay = rows.first().locator('.play')
   await firstPlay.click()
   await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'discover')
-  await expect(page.getByRole('region', { name: 'Spotify player' })).toBeVisible()
-  const playerBox = await page.getByRole('region', { name: 'Spotify player' }).boundingBox()
-  const dropBox = await page.getByRole('button', { name: 'Drop a song', exact: true }).boundingBox()
-  expect(playerBox.y + playerBox.height).toBeLessThan(dropBox.y)
   await expect(firstPlay).toHaveAttribute('aria-label', 'Pause Blinding Lights on Spotify')
+  await expect(page.locator('.mini-player')).toBeHidden()
+  await expect(page.locator('.mini-player iframe')).toHaveCount(1)
+  await expect(page.locator('#screen')).not.toHaveClass(/has-player/)
   await firstPlay.click()
   await expect(firstPlay).toHaveAttribute('aria-label', 'Play Blinding Lights on Spotify')
+  await expect(page.locator('.mini-player')).toBeHidden()
   await rows.nth(1).locator('.play').click()
   await expect(rows.nth(1).locator('.play')).toHaveAttribute('aria-pressed', 'true')
   await expect(firstPlay).toHaveAttribute('aria-pressed', 'false')
@@ -178,12 +180,32 @@ test('list playback stays on Discover, pauses, changes tracks, and preserves det
   await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'song')
   await expect(page.locator('.song-title')).toHaveText('Blinding Lights')
   await expect(page.locator('.song-sub')).toContainText('After Hours')
-  await page.getByRole('button', { name: 'Close Spotify player' }).click()
-  expect(await page.evaluate(() => window.spotifyCommands.at(-1)[0])).toBe('destroy')
-  await expect(page.getByRole('region', { name: 'Spotify player' })).toHaveCount(0)
+  await expect(page.locator('.mini-player')).toBeHidden()
+  expect(await page.evaluate(() => window.spotifyCommands.some(command => command[0] === 'destroy'))).toBe(false)
   await page.goBack()
-  await page.locator('.rows .play').first().click()
-  await expect(page.locator('.rows .play').first()).toHaveAttribute('aria-pressed', 'true')
+  await expect(rows.nth(1).locator('.play')).toHaveAttribute('aria-pressed', 'true')
+  await page.evaluate(() => window.spotifyEndPlayback())
+  await expect(rows.nth(1).locator('.play')).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('.mini-player')).toBeHidden()
+})
+
+test('blocked autoplay reveals Spotify controls, then hides them once playback starts', async ({ page }) => {
+  await mockSpotifyPlayer(page, true)
+  await page.goto('/#/discover')
+  const play = page.locator('.rows .play').first()
+  await play.click()
+  await expect(play).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('.mini-player')).toBeVisible({ timeout: 6000 })
+  const playerBox = await page.locator('.mini-player').boundingBox()
+  const dropBox = await page.getByRole('button', { name: 'Drop a song', exact: true }).boundingBox()
+  expect(playerBox.y + playerBox.height).toBeLessThan(dropBox.y)
+  await page.evaluate(() => window.spotifyStartPlayback())
+  await expect(play).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.mini-player')).toBeHidden()
+  await play.click()
+  await expect(play).toHaveAttribute('aria-pressed', 'false')
+  await page.waitForTimeout(3200)
+  await expect(page.locator('.mini-player')).toBeHidden()
 })
 
 test('song artwork, artist, and row whitespace open details without starting playback', async ({ page }) => {
