@@ -41,6 +41,8 @@ in dark mode. Note/composer fields use the screen color. Accent text stays
 black; neutral text, borders, and hard shadows follow the theme's ink.
 These color checks do not imply pixel-identical layouts or content: the coded
 prototype also includes requested controls, real artwork, and demo notices.
+Discover track rows use 8px horizontal padding to give ranks and 44px Play
+controls breathing room without changing the square, bordered list style.
 
 ## Account and Settings prototype flows
 
@@ -50,6 +52,11 @@ Create an account opens Join Melody, demo email verification, avatar setup,
 Handles are validated against demo names only. No account is created, email
 sent, or password persisted; use invented credentials. OAuth from genre setup
 returns to that step with the demo identity, avatar, and genres restored.
+Avatar setup centers the preview-and-shuffle group, with a 150px avatar and
+a 44px shuffle button aligned beside its lower edge, matching the Figma frame.
+The hi-fi welcome page uses the four original decoration SVGs from
+`../other-files/svgs/` around its pink avatar card; their outlines follow the
+light/dark ink color while their accent fills remain unchanged.
 
 Profile Settings includes simulated notification/privacy preferences, Spotify,
 Appearance (System/Light/Dark), and Log out confirmation. Cancel returns to

@@ -85,7 +85,7 @@ export function accountAction(name, key, { state, mutate, navigate, toast, logou
   return true
 }
 
-export function accountScreens(S, { esc, sheet, profile, themePreference = 'system', realSpotify = false }) {
+export function accountScreens(S, { esc, sheet, profile, themePreference = 'system', realSpotify = false, shuffleIcon = '↝' }) {
   const input = (id, label, type = 'text') => `<label class="label" for="${id}">${label}</label><input class="field" id="${id}" type="${type}" value="${esc(S.inputs[id] || '')}" autocomplete="off">`
   const progress = (step, title) => `<div class="onboarding-progress" aria-label="Step ${step} of 4">${[1, 2, 3, 4].map(n => `<i class="${n <= step ? 'on' : ''}"></i>`).join('')}</div><p class="helper">Step ${step} of 4 · ${title}</p>`
   const page = (title, step, content) => `<div class="scr"><div class="scroll onboarding"><button class="icon-btn" type="button" data-back aria-label="Back">←</button>${step ? progress(step, title) : ''}<h1 class="h-page">${title}</h1>${content}</div></div>`
@@ -118,7 +118,7 @@ export function accountScreens(S, { esc, sheet, profile, themePreference = 'syst
       <button class="link" type="button" data-go="join">Wrong email? Change it</button>
       <button class="btn sh block" type="button" data-action="verifyDemo">Continue with demo verification</button>`),
     'onboarding-avatar': () => page('Make your avatar', 2, `
-      <div class="title-row"><span class="av av-preview" style="--sz:140px">${avatarSVG(d)}</span><button class="icon-btn" type="button" data-action="shuffle" aria-label="Shuffle">↝</button></div>
+      <div class="title-row onboarding-avatar-preview"><span class="av av-preview" style="--sz:140px">${avatarSVG(d)}</span><button class="icon-btn" type="button" data-action="shuffle" aria-label="Shuffle">${shuffleIcon}</button></div>
       <div class="seg" role="tablist">${AV_TABS.map(item => `<button type="button" role="tab" data-action="avTab" data-key="${item.id}" aria-selected="${item.id === d.tab}">${item.label}</button>`).join('')}</div>
       <div class="opts">${tab.rows.map(([label, key]) => `<div class="opt"><span>${label}</span><button class="icon-btn" type="button" data-action="cycle" data-key="${key}:-1" aria-label="Previous ${label}">‹</button><output>${avatarLabel(key, d[key])}</output><button class="icon-btn" type="button" data-action="cycle" data-key="${key}:1" aria-label="Next ${label}">›</button></div>`).join('')}
       ${tab.colors.map(([label, key]) => `<div class="swatch-group"><span>${label}</span><div class="swatches">${AV_COLORS[key].map((color, index) => `<button class="sw" type="button" style="background:${color}" data-action="swatch" data-key="${key}:${index}" aria-pressed="${d[key] === index}" aria-label="${label} ${index + 1}"></button>`).join('')}</div></div>`).join('')}</div>

@@ -7,6 +7,27 @@ const accents = {
   periwinkle: 'rgb(159, 168, 255)',
 }
 
+test('Discover track rows give ranks and play controls 8px of edge spacing', async ({ page }) => {
+  for (const theme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme: theme })
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto('/#/discover')
+      const row = page.locator('.discover-results .rows > li').first()
+      const rowBox = await row.boundingBox()
+      const rankBox = await row.locator('.rank').boundingBox()
+      const playBox = await row.locator('.play').boundingBox()
+      expect(rankBox.x - rowBox.x).toBe(8)
+      expect(rowBox.x + rowBox.width - playBox.x - playBox.width).toBe(8)
+      expect(playBox.width).toBe(44)
+      expect(playBox.height).toBe(44)
+      expect(await row.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+      await row.locator('.row-main').click()
+      await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'song')
+    }
+  }
+})
+
 for (const theme of ['light', 'dark']) {
   test(`${theme} surfaces and accents match the exported Figma frames`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 })

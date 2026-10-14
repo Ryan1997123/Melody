@@ -1,6 +1,12 @@
 import { AV_COLORS, AV_TABS, initialAvatar, avatarLabel, avatarSVG, personAvatarSVG } from './avatars.js';
 import { DISCOVER_MOODS, FIGMA_CHARTS, FIGMA_CHAT, FIGMA_SONG, FIGMA_TRENDING, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
 import { accountFrames, accountScreens, accountState } from '../../prototype-react/src/account-flows.js'
+import welcomeLemon from '../../other-files/svgs/Decoration.svg?raw'
+import welcomeMint from '../../other-files/svgs/Decoration-1.svg?raw'
+import welcomePeriwinkle from '../../other-files/svgs/Decoration-2.svg?raw'
+import welcomeBubblegum from '../../other-files/svgs/Decoration-3.svg?raw'
+
+const welcomeDecoration = (color, svg) => `<span class="welcome-decoration ${color}" aria-hidden="true">${svg.replaceAll('stroke="black"', 'stroke="var(--ink)"')}</span>`
 
 /* ---------- Frames ---------- */
 export const FRAMES = [
@@ -134,6 +140,23 @@ export function createScreenMarkup(id, S) {
 
   /* ---------- Screens ---------- */
   const SCREENS = {
+    welcome: () => `<div class="scr"><div class="scroll welcome">
+      <section class="me-card welcome-content">
+        <div class="welcome-art">
+          ${welcomeDecoration('lemon', welcomeLemon)}
+          ${welcomeDecoration('mint', welcomeMint)}
+          ${welcomeDecoration('periwinkle', welcomePeriwinkle)}
+          ${welcomeDecoration('bubblegum', welcomeBubblegum)}
+          <span class="welcome-avatar"><span class="av" style="--sz:140px">${avatarSVG(S.avatar)}</span></span>
+        </div>
+        <h1 class="h-page">You’re in, @${esc(S.handle)}</h1>
+        <p>Your friends see your drops in their feed.<br>Start with a song you can’t stop playing.</p>
+      </section>
+      <div class="welcome-actions">
+        <button class="btn pri sh block" type="button" data-go="drop-pick">Drop your first song</button>
+        <button class="btn sh block" type="button" data-go="discover">Explore Discover</button>
+      </div>
+    </div></div>`,
     signin: () => `<div class="scr"><div class="scroll signin">
       <div class="brand"><span class="brand-mark">♫</span><h1 class="h-xl">Melody</h1></div>
       <p class="tagline">Say what songs mean to you. Share them with your friends.</p>
@@ -377,6 +400,6 @@ export function createScreenMarkup(id, S) {
   }
 
 
-  const flows = accountScreens(S, { esc, sheet, profile: SCREENS.profile, themePreference: S.themePreference, realSpotify: true })
-  return flows[id] ? flows[id]() : screenMarkup(id);
+  const flows = accountScreens(S, { esc, sheet, profile: SCREENS.profile, themePreference: S.themePreference, realSpotify: true, shuffleIcon: ic.shuffle })
+  return id === 'welcome' ? screenMarkup(id) : flows[id] ? flows[id]() : screenMarkup(id);
 }
