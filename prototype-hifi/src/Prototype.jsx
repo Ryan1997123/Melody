@@ -67,7 +67,7 @@ export default function Prototype() {
   const [playRequest, setPlayRequest] = useState(null)
   const [playback, setPlayback] = useState(null)
   const [playerVisible, setPlayerVisible] = useState(false)
-  const [discoverPage, setDiscoverPage] = useState({ key: '', limit: DISCOVER_BATCH_SIZE })
+  const [discoverPage, setDiscoverPage] = useState({ key: '', limit: DISCOVER_BATCH_SIZE, loading: false })
   const [themePreference, setThemePreference] = useState(() => localStorage.getItem('melody-hifi-theme') || 'system')
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('melody-hifi-theme')
@@ -83,23 +83,34 @@ export default function Prototype() {
   const discoverPageKey = JSON.stringify([id, state.searchQuery, state.searchSource, [...state.chips].sort(),
     state.discoverLibrary, state.topTracks.map(track => track.id), state.searchResults.map(track => track.id)])
   if (discoverPage.key !== discoverPageKey) {
-    setDiscoverPage({ key: discoverPageKey, limit: DISCOVER_BATCH_SIZE })
+    setDiscoverPage({ key: discoverPageKey, limit: DISCOVER_BATCH_SIZE, loading: false })
   }
   const discoverLimit = discoverPage.key === discoverPageKey ? discoverPage.limit : DISCOVER_BATCH_SIZE
 
   const loadDiscover = useCallback(total => {
-    setDiscoverPage(previous => ({
-      key: discoverPageKey,
-      limit: Math.min(total, (previous.key === discoverPageKey ? previous.limit : DISCOVER_BATCH_SIZE) + DISCOVER_BATCH_SIZE),
-    }))
+    setDiscoverPage(previous => previous.key !== discoverPageKey || previous.loading || previous.limit >= total
+      ? previous : { ...previous, loading: true, total })
   }, [discoverPageKey])
+
+  useEffect(() => {
+    if (!discoverPage.loading) return
+    // A short prototype transition makes each local batch's loading state visible.
+    const timer = setTimeout(() => {
+      setDiscoverPage(previous => previous.key !== discoverPage.key ? previous : {
+        ...previous,
+        limit: Math.min(previous.total, previous.limit + DISCOVER_BATCH_SIZE),
+        loading: false,
+      })
+    }, 450)
+    return () => clearTimeout(timer)
+  }, [discoverPage.key, discoverPage.loading])
 
   useLayoutEffect(() => {
     if (id === 'discover') screenRef.current.querySelector('.scroll').scrollTop = 0
   }, [id, discoverPageKey])
 
   useEffect(() => {
-    if (id !== 'discover') return
+    if (id !== 'discover' || discoverPage.loading) return
     const more = screenRef.current.querySelector('[data-action="loadDiscover"]')
     if (!more) return
     const observer = new IntersectionObserver(entries => {
@@ -107,10 +118,10 @@ export default function Prototype() {
         observer.disconnect()
         loadDiscover(Number(more.dataset.total))
       }
-    }, { root: screenRef.current.querySelector('.scroll'), rootMargin: '0px 0px 100px 0px' })
+    }, { root: screenRef.current.querySelector('.scroll') })
     observer.observe(more)
     return () => observer.disconnect()
-  }, [id, discoverPageKey, discoverLimit, loadDiscover])
+  }, [id, discoverPageKey, discoverLimit, discoverPage.loading, loadDiscover])
 
   function mutate(change) {
     setState(previous => {
@@ -585,7 +596,7 @@ export default function Prototype() {
     }
   }
 
-  const markup = createScreenMarkup(id, { ...state, darkMode, playback, themePreference, discoverLimit })
+  const markup = createScreenMarkup(id, { ...state, darkMode, playback, themePreference, discoverLimit, discoverLoading: discoverPage.loading })
   const screenDocument = new DOMParser().parseFromString(markup, 'text/html')
   const targets = [...screenDocument.querySelectorAll('[data-go]')].filter((element, index, elements) =>
     element.dataset.go !== id && elements.findIndex(other => other.dataset.go === element.dataset.go) === index)

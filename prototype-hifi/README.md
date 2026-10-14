@@ -53,8 +53,11 @@ connecting. Song IDs/titles were verified from Spotify's public album embeds
 Born To Die, In Rainbows, Discovery, and folklore), alongside the original
 demo songs. This is a curated library, not live Spotify chart rankings.
 Mood assignments are Melody's editorial choices, not Spotify-provided analysis.
-Discover renders 12 songs initially, then adds batches of 12 near the bottom
-of the scroll area. A Load more songs button also supports keyboard access.
+Discover renders 10 songs initially. At the bottom, it shows a small loading
+indicator for a 450ms prototype transition, then appends the next 10 songs.
+This transition is not an additional Spotify network request; the metadata is
+already available and artwork resolves as rows mount.
+A Load more songs button also supports keyboard access.
 Filtering, searching, switching sources, and returning to Discover reset the
 batch and scroll position. Artwork is resolved only for mounted song rows,
 not for the entire library upfront.

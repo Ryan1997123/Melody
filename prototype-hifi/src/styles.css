@@ -449,6 +449,13 @@ body { background: var(--canvas); }
 .search-note { margin-top: -12px !important; color: var(--mute); font-size: 12px; }
 .discover-results .rows > li,
 .screen[data-screen="drop-pick"] .rows > li { padding-inline: 8px; }
+.discover-load { display: flex; flex-direction: column; gap: 12px; }
+.discover-loading { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
+.loading-spinner { width: 20px; height: 20px; border: 3px solid var(--ink); border-top-color: #ff7ac6; animation: loading-spin .7s linear infinite; }
+@keyframes loading-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner { animation: none; }
+}
 .screen[data-screen="drop-why"] .picked { gap: 12px; }
 .screen[data-screen="drop-why"] .picked .tt { flex: 1; }
 .screen[data-screen="drop-why"] .picked .btn { flex: none; }

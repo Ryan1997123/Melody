@@ -1,7 +1,7 @@
 import { CURATED_ALBUM_TRACKS } from './curated-tracks.js'
 
 export const DISCOVER_MOODS = ['Rainy day', 'Gym', 'Road trip', 'Focus', 'Throwbacks']
-export const DISCOVER_BATCH_SIZE = 12
+export const DISCOVER_BATCH_SIZE = 10
 
 export const FIGMA_CHARTS = [
   { id: '2qSkIjg1o9h3YT9RAgYN75', title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', moods: ['Gym', 'Road trip'] },

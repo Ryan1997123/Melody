@@ -122,7 +122,10 @@ export function createScreenMarkup(id, S) {
   )
   const visibleDiscoverTracks = discoverTracks.slice(0, S.discoverLimit || DISCOVER_BATCH_SIZE)
   const discoverMore = visibleDiscoverTracks.length < discoverTracks.length
-    ? `<button class="btn block" type="button" data-action="loadDiscover" data-total="${discoverTracks.length}">Load more songs</button>` : ''
+    ? `<div class="discover-load">
+        ${S.discoverLoading ? '<p class="discover-loading" role="status"><span class="loading-spinner" aria-hidden="true"></span>Loading more songs…</p>' : ''}
+        <button class="btn block" type="button" data-action="loadDiscover" data-total="${discoverTracks.length}" ${S.discoverLoading ? 'disabled' : ''}>Load more songs</button>
+      </div>` : ''
   const art = (sz, track = selectedTrack) =>
     `<span class="art" data-artwork="${esc(track.id)}" style="--sz:${sz}px"></span>`
   const play = (key, cls = '', track = selectedTrack) => {

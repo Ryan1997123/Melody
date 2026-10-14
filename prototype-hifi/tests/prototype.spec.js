@@ -12,6 +12,50 @@ async function loadAllDiscoverSongs(page, total) {
   }
 }
 
+test('Discover shows a loading indicator before appending exactly 10 more songs on scroll', async ({ page }) => {
+  await page.clock.install()
+  await page.goto('/#/discover')
+  const rows = page.locator('.discover-results li')
+  await expect(rows).toHaveCount(10)
+  await page.clock.pauseAt(new Date(Date.now() + 1000))
+  await page.getByRole('button', { name: 'Load more songs', exact: true }).scrollIntoViewIfNeeded()
+  const loading = page.getByRole('status').filter({ hasText: 'Loading more songs' })
+  await expect(loading).toBeVisible()
+  await expect(rows).toHaveCount(10)
+  await expect(page.getByRole('button', { name: 'Load more songs', exact: true })).toBeDisabled()
+  await page.clock.runFor(449)
+  await expect(rows).toHaveCount(10)
+  await page.clock.runFor(1)
+  await expect(rows).toHaveCount(20)
+  await expect(loading).toHaveCount(0)
+  await page.getByRole('button', { name: 'Load more songs', exact: true }).scrollIntoViewIfNeeded()
+  await expect(loading).toBeVisible()
+  await page.clock.runFor(450)
+  await expect(rows).toHaveCount(30)
+})
+
+test('Changing a mood during loading cancels the pending batch', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.IntersectionObserver = class {
+      observe() {}
+      disconnect() {}
+    }
+  })
+  await page.clock.install()
+  await page.goto('/#/discover')
+  await page.clock.pauseAt(new Date(Date.now() + 1000))
+  const rows = page.locator('.discover-results li')
+  await page.getByRole('button', { name: 'Load more songs', exact: true }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Loading more songs' })).toBeVisible()
+  await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
+  await page.clock.runFor(1000)
+  await expect(rows).toHaveCount(10)
+  await expect(page.getByRole('status').filter({ hasText: 'Loading more songs' })).toHaveCount(0)
+  expect(await rows.evaluateAll(elements => elements.map(el => el.dataset.trackId))).toEqual(
+    filterDiscoverTracks(CURATED_TRACKS, '', new Set(['Rainy day'])).slice(0, 10).map(track => track.id),
+  )
+})
+
 test('Curated library has 100+ unique Spotify songs and at least 20 for each mood', () => {
   expect(CURATED_TRACKS.length).toBeGreaterThanOrEqual(100)
   expect(new Set(CURATED_TRACKS.map(track => track.id)).size).toBe(CURATED_TRACKS.length)
@@ -46,7 +90,7 @@ test('Discover defers artwork and rows, and resets batches for each mood and sea
     await chip.click()
     const expected = filterDiscoverTracks(CURATED_TRACKS, '', new Set([mood]))
     await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
-    await expect(page.locator('.discover-results')).toContainText(`Showing 12 of ${expected.length} songs`)
+    await expect(page.locator('.discover-results')).toContainText(`Showing ${DISCOVER_BATCH_SIZE} of ${expected.length} songs`)
     await loadAllDiscoverSongs(page, expected.length)
     expect(await rows.evaluateAll(elements => elements.map(el => el.dataset.trackId))).toEqual(expected.map(track => track.id))
     await chip.click()
