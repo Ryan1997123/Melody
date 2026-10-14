@@ -1,0 +1,17 @@
+.onboarding-progress { display: flex; gap: 8px; }
+.onboarding-progress i { flex: 1; height: 8px; border: 2px solid var(--ink); background: var(--paper); }
+.onboarding-progress i.on { background: var(--fill); }
+.prototype-note { color: var(--mute); font-size: 12px; line-height: 1.4; }
+.onboarding .form { gap: 12px; }
+.settings-account { display: flex; align-items: center; gap: 12px; }
+.settings-account > div { min-width: 0; overflow-wrap: anywhere; }
+.settings-list { border: var(--b); }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; border: 0; border-bottom: 2px solid var(--ink); background: var(--paper); color: var(--ink); padding: 12px; font: 400 14px var(--f-ui); text-align: left; }
+.settings-row:last-child { border-bottom: 0; }
+.settings-row select { max-width: 110px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); font: inherit; }
+.profile-backdrop { height: 100%; overflow: hidden; display: flex; flex-direction: column; gap: 20px; padding: 58px 20px 28px; }
+.logout-layer { z-index: 1; background: var(--scrim); justify-content: center; }
+.logout-dialog { display: flex; flex-direction: column; gap: 16px; }
+.logout-dialog .h-page { font-size: 25px; }
+.welcome-star { font-size: 44px; }
+.onboarding .seg { flex-shrink: 0; }

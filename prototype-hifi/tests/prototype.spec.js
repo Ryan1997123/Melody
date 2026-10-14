@@ -1,5 +1,26 @@
 import { test, expect } from '@playwright/test'
 import { FRAMES } from '../src/screens.js'
+import { initialAvatar } from '../src/avatars.js'
+
+test('optional Spotify authorization restores onboarding identity, avatar, and genres', async ({ page }) => {
+  const avatar = { ...initialAvatar('demo'), hair: 2 }
+  await page.addInitScript(context => {
+    sessionStorage.setItem('melody-hifi-onboarding', JSON.stringify(context))
+    sessionStorage.setItem('melody-hifi-spotify-state', 'test-state')
+    sessionStorage.setItem('melody-hifi-spotify-verifier', 'test-verifier')
+  }, { handle: 'demo_music', email: 'demo@example.com', avatar, genres: ['Pop', 'Rock', 'Jazz'] })
+  await page.route('https://accounts.spotify.com/api/token', route => route.fulfill({
+    json: { access_token: 'test-token', expires_in: 3600 },
+  }))
+  await page.route('https://api.spotify.com/v1/me/top/tracks**', route => route.fulfill({ json: { items: [] } }))
+  await page.goto('/?code=test-code&state=test-state')
+  await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'onboarding-genres')
+  await expect(page.locator('.genre-chips [aria-pressed="true"]')).toHaveCount(3)
+  await page.getByRole('button', { name: 'Next', exact: true }).click()
+  await page.getByRole('button', { name: 'Skip for now', exact: true }).click()
+  await expect(page.locator('#screen')).toContainText('@demo_music')
+  expect(await page.evaluate(() => sessionStorage.getItem('melody-hifi-onboarding'))).toBeNull()
+})
 
 test('Discover searches local titles, artists, and albums and combines mood filters with any-match semantics', async ({ page }) => {
   await page.goto('/#/discover')
@@ -9,7 +30,7 @@ test('Discover searches local titles, artists, and albums and combines mood filt
   await page.getByRole('button', { name: 'Gym', exact: true }).click()
   await expect(results.locator('li')).toHaveCount(2)
   await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
-  await expect(results.locator('li')).toHaveCount(3)
+  await expect(results.locator('li')).toHaveCount(5)
   await search.fill('Coldplay')
   await page.getByRole('button', { name: 'Search', exact: true }).click()
   await expect(results.locator('li')).toHaveCount(1)
@@ -232,7 +253,7 @@ test('sign in, tabs, likes, history and reload work', async ({ page }) => {
 
 test('Spotify song details and edit profile work', async ({ page }) => {
   await page.goto('/#/song')
-  await expect(page.locator('.song-title')).toHaveText('Blinding Lights')
+  await expect(page.locator('.song-title')).toHaveText('Ribs')
   await expect(page.locator('.spotify-embed')).toHaveAttribute('src', /open\.spotify\.com\/embed\/track\//)
 
   await page.goto('/#/profile')
@@ -291,12 +312,12 @@ test('list playback stays on Discover, pauses, changes tracks, and preserves det
   const firstPlay = rows.first().locator('.play')
   await firstPlay.click()
   await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'discover')
-  await expect(firstPlay).toHaveAttribute('aria-label', 'Pause Blinding Lights on Spotify')
+  await expect(firstPlay).toHaveAttribute('aria-label', 'Pause Espresso on Spotify')
   await expect(page.locator('.mini-player')).toBeHidden()
   await expect(page.locator('.mini-player iframe')).toHaveCount(1)
   await expect(page.locator('#screen')).not.toHaveClass(/has-player/)
   await firstPlay.click()
-  await expect(firstPlay).toHaveAttribute('aria-label', 'Play Blinding Lights on Spotify')
+  await expect(firstPlay).toHaveAttribute('aria-label', 'Play Espresso on Spotify')
   await expect(page.locator('.mini-player')).toBeHidden()
   await rows.nth(1).locator('.play').click()
   await expect(rows.nth(1).locator('.play')).toHaveAttribute('aria-pressed', 'true')
@@ -307,8 +328,8 @@ test('list playback stays on Discover, pauses, changes tracks, and preserves det
     .toContain('Cover.svg')
   await rows.first().locator('.tt b').click()
   await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'song')
-  await expect(page.locator('.song-title')).toHaveText('Blinding Lights')
-  await expect(page.locator('.song-sub')).toContainText('After Hours')
+  await expect(page.locator('.song-title')).toHaveText('Espresso')
+  await expect(page.locator('.song-sub')).toContainText('Short n’ Sweet')
   await expect(page.locator('.mini-player')).toBeHidden()
   expect(await page.evaluate(() => window.spotifyCommands.some(command => command[0] === 'destroy'))).toBe(false)
   await page.goBack()

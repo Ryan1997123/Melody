@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { FRAMES } from '../src/screens.js'
 
-test('all 13 screens render with assets and fit the viewport', async ({ page }, testInfo) => {
+test('all screens render with assets and fit the viewport', async ({ page }, testInfo) => {
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
@@ -9,7 +9,7 @@ test('all 13 screens render with assets and fit the viewport', async ({ page }, 
     await page.goto(`/#/${frame.id}`)
     await expect(page.locator('#screen')).toHaveAttribute('data-screen', frame.id)
     await expect(page.locator('#screen > .scr')).toBeVisible()
-    await expect.poll(() => page.locator('#orig').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true)
+    if (frame.file) await expect.poll(() => page.locator('#orig').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     if (['signin', 'discover', 'avatar'].includes(frame.id)) {
       await page.screenshot({ path: testInfo.outputPath(`${frame.id}.png`), animations: 'disabled' })

@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
-import parse, { attributesToProps } from 'html-react-parser'
+import parse, { attributesToProps, domToReact } from 'html-react-parser'
 import { FRAMES, byId, TABS, validScreen, initState, createScreenMarkup } from './screens.js'
 import { AVO, AV_COLORS } from './avatars.js'
 import Artwork from './Artwork.jsx'
 import SpotifyPlayer from './SpotifyPlayer.jsx'
+import { accountAction } from '../../prototype-react/src/account-flows.js'
 import { completeSpotifyAuth, disconnectSpotify, getTopTracks, searchSpotifyTracks, spotifyConnected, startSpotifyAuth } from './spotify.js'
 
 function routeId() {
@@ -33,6 +34,24 @@ export default function Prototype() {
   const [state, setState] = useState(() => {
     const initial = initState()
     initial.spotify = spotifyConnected()
+    if (new URLSearchParams(location.search).has('code') || new URLSearchParams(location.search).has('error')) {
+      const saved = sessionStorage.getItem('melody-hifi-onboarding')
+      if (saved) {
+        try {
+          const context = JSON.parse(saved)
+          if (typeof context.handle !== 'string' || typeof context.email !== 'string' ||
+              !Array.isArray(context.genres) || !context.avatar) throw new Error('Invalid onboarding data')
+          initial.handle = context.handle
+          initial.email = context.email
+          initial.avatar = context.avatar
+          initial.onboardingAvatar = context.avatar
+          initial.genres = new Set(context.genres)
+        } catch (error) {
+          console.error('Could not restore onboarding after Spotify authorization', error)
+          initial.spotifyError = 'Could not restore onboarding. Please start the demo account flow again.'
+        }
+      }
+    }
     if (routeId() === 'avatar') initial.draft = { ...initial.avatar }
     return initial
   })
@@ -69,6 +88,36 @@ export default function Prototype() {
   }
 
   function toast(message) { setNotice({ message }) }
+  function avatarDraft(next) {
+    return id === 'onboarding-avatar' ? (next.onboardingAvatar ||= { ...next.avatar }) : next.draft
+  }
+  function logout() {
+    searchRequestRef.current += 1
+    disconnectSpotify()
+    setPlayRequest(null)
+    setPlayback(null)
+    setPlayerVisible(false)
+    mutate(next => {
+      next.spotify = false
+      next.spotifyError = ''
+      next.topTracks = []
+      next.searchResults = []
+      next.searchQuery = ''
+      next.searchSource = 'local'
+      next.searchError = ''
+      next.searchLoading = false
+      next.inputs = {}
+      next.signupError = ''
+    })
+    const next = { stack: ['signin'], index: 0 }
+    writeHistory('replaceState', next)
+    setRoute(next)
+    setAnimation('fade')
+    toast('Logged out of the demo. Your data stays until you refresh.')
+  }
+  useLayoutEffect(() => {
+    if (id === 'logout') screenRef.current.querySelector('[data-back]')?.focus()
+  }, [id])
 
   function changeTheme(preference) {
     setThemePreference(preference)
@@ -152,6 +201,15 @@ export default function Prototype() {
   })
 
   const handleKey = useEffectEvent(event => {
+    if (id === 'logout' && event.key === 'Tab') {
+      const buttons = [...screenRef.current.querySelectorAll('[role="dialog"] button')]
+      const boundary = event.shiftKey ? buttons[0] : buttons.at(-1)
+      if (document.activeElement === boundary) {
+        event.preventDefault()
+        ;(event.shiftKey ? buttons.at(-1) : buttons[0]).focus()
+      }
+      return
+    }
     if (event.target.closest('input:not([type="checkbox"]), textarea') || event.metaKey || event.ctrlKey || event.altKey) return
     const key = event.key.toLowerCase()
     if (key === 's') {
@@ -195,6 +253,13 @@ export default function Prototype() {
     return () => clearTimeout(timer)
   }, [notice])
 
+  const resumeOnboarding = useEffectEvent(() => {
+    if (sessionStorage.getItem('melody-hifi-onboarding')) {
+      sessionStorage.removeItem('melody-hifi-onboarding')
+      navigate('onboarding-genres')
+    }
+  })
+
   useEffect(() => {
     let active = true
     async function loadSpotify() {
@@ -202,6 +267,7 @@ export default function Prototype() {
         spotifyAuthRef.current ||= completeSpotifyAuth()
         const returnedFromSpotify = await spotifyAuthRef.current
         if (!active) return
+        resumeOnboarding()
         if (!returnedFromSpotify && !spotifyConnected()) return
         const tracks = await getTopTracks()
         if (active) {
@@ -215,6 +281,7 @@ export default function Prototype() {
         }
       } catch (error) {
         if (active) {
+          resumeOnboarding()
           mutate(next => {
             next.spotify = spotifyConnected()
             next.spotifyError = error.message
@@ -257,6 +324,7 @@ export default function Prototype() {
   }, [id, state.msgs])
 
   function action(name, key) {
+    if (accountAction(name, key, { state, mutate, navigate, toast, logout })) return
     switch (name) {
       case 'theme': changeTheme(darkMode ? 'light' : 'dark'); break
       case 'chip': mutate(next => { if (next.chips.has(key)) next.chips.delete(key); else next.chips.add(key) }); break
@@ -293,7 +361,15 @@ export default function Prototype() {
           })
           toast('Spotify disconnected')
         } else {
-          startSpotifyAuth().catch(error => {
+          Promise.resolve().then(() => {
+            if (id === 'onboarding-genres') {
+              sessionStorage.setItem('melody-hifi-onboarding', JSON.stringify({
+                handle: state.handle, email: state.email, avatar: state.avatar, genres: [...state.genres],
+              }))
+            }
+            return startSpotifyAuth()
+          }).catch(error => {
+            sessionStorage.removeItem('melody-hifi-onboarding')
             mutate(next => { next.spotifyError = error.message })
             toast(error.message)
           })
@@ -325,23 +401,23 @@ export default function Prototype() {
         toast(status === 'add' ? `Request sent to @${key}` : `Request to @${key} cancelled`)
         break
       }
-      case 'avTab': mutate(next => { next.draft.tab = key }); break
+      case 'avTab': mutate(next => { avatarDraft(next).tab = key }); break
       case 'cycle': {
         const [option, direction] = key.split(':')
         const length = AVO[option].length
-        mutate(next => { next.draft[option] = (next.draft[option] + Number(direction) + length) % length })
+        mutate(next => { const draft = avatarDraft(next); draft[option] = (draft[option] + Number(direction) + length) % length })
         break
       }
       case 'swatch': {
         const [option, value] = key.split(':')
-        mutate(next => { next.draft[option] = Number(value) })
+        mutate(next => { avatarDraft(next)[option] = Number(value) })
         break
       }
       case 'shuffle': {
         const lengths = Object.fromEntries(Object.entries(AVO).map(([option, values]) => [option, values.length]))
         for (const [option, colors] of Object.entries(AV_COLORS)) lengths[option] = colors.length
         const values = Object.fromEntries(Object.entries(lengths).map(([option, length]) => [option, Math.floor(Math.random() * length)]))
-        mutate(next => { next.draft = { ...next.draft, ...values } })
+        mutate(next => { Object.assign(avatarDraft(next), values) })
         break
       }
       case 'saveAvatar': mutate(next => { next.avatar = { ...next.draft } }); back(); toast('Avatar saved'); break
@@ -398,6 +474,7 @@ export default function Prototype() {
   function handleSubmit(event) {
     event.preventDefault()
     switch (event.target.dataset.form) {
+      case 'join': action('createAccount'); break
       case 'signin': navigate('discover', 'tab'); break
       case 'search': {
         const input = event.target.querySelector('input[type="search"]')
@@ -472,13 +549,21 @@ export default function Prototype() {
     }
   }
 
-  const markup = createScreenMarkup(id, { ...state, darkMode, playback })
+  const markup = createScreenMarkup(id, { ...state, darkMode, playback, themePreference })
   const screenDocument = new DOMParser().parseFromString(markup, 'text/html')
   const targets = [...screenDocument.querySelectorAll('[data-go]')].filter((element, index, elements) =>
     element.dataset.go !== id && elements.findIndex(other => other.dataset.go === element.dataset.go) === index)
   const backTarget = screenDocument.querySelector('[data-back],[data-action="dismiss"]')
   const content = parse(markup, {
     replace(node) {
+      if (node.name === 'div' && 'inert' in node.attribs) {
+        return <div inert aria-hidden="true">{domToReact(node.children)}</div>
+      }
+      if (node.name === 'select' && 'data-theme-select' in node.attribs) {
+        return <select aria-label="Appearance" value={themePreference} onChange={event => changeTheme(event.target.value)}>
+          <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
+        </select>
+      }
       if (node.name === 'span' && node.attribs['data-artwork']) {
         const track = state.catalog.find(item => item.id === node.attribs['data-artwork']) ||
           state.searchResults.find(item => item.id === node.attribs['data-artwork'])
@@ -578,7 +663,7 @@ export default function Prototype() {
                 setPlayerVisible(false)
               }} />
             </div>}
-            <img className="orig" id="orig" src={`${import.meta.env.BASE_URL}wireframes/${frame.file}`} alt={`Original ${frame.name} wireframe`} hidden={!overlay} />
+            <img className="orig" id="orig" src={frame.file ? `${import.meta.env.BASE_URL}wireframes/${frame.file}` : undefined} alt={`Original ${frame.name} wireframe`} hidden={!overlay || !frame.file} />
             <div className={`toast${notice ? ' show' : ''}`} id="toast" role="status" aria-live="polite" style={{ bottom: screenDocument.querySelector('.tabbar,.sheet-foot,.composer-bar') ? undefined : '40px' }}>{notice && <span>{notice.message}</span>}</div>
           </div>
         </div>

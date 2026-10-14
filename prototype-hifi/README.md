@@ -33,6 +33,26 @@ Dark mode uses the supplied Figma PNGs: background `#24132F`, raised surfaces
 retain black text, and Spotify artwork and avatar colors are not inverted.
 The low-fidelity prototype's theme behavior is unchanged.
 
+## Account and Settings prototype flows
+
+The updated Figma map is `../other-files/melody-figma-map-latestbest.md`.
+Create an account opens Join Melody, demo email verification, avatar setup,
+14 genre chips (at least three required), friend suggestions, and You're in.
+Handles are validated against demo names only. No account is created, email
+sent, or password persisted; use invented credentials. OAuth from genre setup
+returns to that step with the demo identity, avatar, and genres restored.
+
+Profile Settings includes simulated notification/privacy preferences, Spotify,
+Appearance (System/Light/Dark), and Log out confirmation. Cancel returns to
+Settings; Done returns to Profile. Logging out clears Spotify tokens and stops
+playback but preserves in-memory demo drops, comments, and chats until refresh.
+There is no real authentication or server persistence.
+
+Both prototypes share account-flow templates, actions, and layout CSS from
+`../prototype-react/src/account-flows.js` and `account-flows.css`, with
+fidelity-specific colors. Hi-fi uses the map's real song titles and verified
+Spotify IDs; album artwork continues to load at runtime with patterned fallback.
+
 ## Spotify
 
 The prototype uses Spotify Authorization Code with PKCE. No client secret is

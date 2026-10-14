@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
-import parse, { attributesToProps } from 'html-react-parser'
+import parse, { attributesToProps, domToReact } from 'html-react-parser'
 import { FRAMES, byId, TABS, validScreen, initState, createScreenMarkup } from './screens.js'
 import { AVO, AV_COLORS } from './avatars.js'
+import { accountAction } from './account-flows.js'
 
 function routeId() {
   const id = location.hash.replace(/^#\/?/, '')
@@ -40,6 +41,7 @@ export default function Prototype() {
   const [overlay, setOverlay] = useState(false)
   const [flashing, setFlashing] = useState(false)
   const [notice, setNotice] = useState(null)
+  const [themePreference, setThemePreference] = useState('system')
   const stageRef = useRef(null)
   const frameBoxRef = useRef(null)
   const screenRef = useRef(null)
@@ -55,6 +57,35 @@ export default function Prototype() {
   }
 
   function toast(message) { setNotice({ message }) }
+  function avatarDraft(next) {
+    return id === 'onboarding-avatar' ? (next.onboardingAvatar ||= { ...next.avatar }) : next.draft
+  }
+  function logout() {
+    mutate(next => {
+      next.spotify = false
+      next.playing = null
+      next.inputs = {}
+      next.signupError = ''
+    })
+    const next = { stack: ['signin'], index: 0 }
+    writeHistory('replaceState', next)
+    setRoute(next)
+    setAnimation('fade')
+    toast('Logged out of the demo. Your data stays until you refresh.')
+  }
+  useLayoutEffect(() => {
+    const media = matchMedia('(prefers-color-scheme: dark)')
+    const update = () => {
+      document.documentElement.dataset.theme = themePreference === 'dark' ||
+        (themePreference === 'system' && media.matches) ? 'dark' : 'light'
+    }
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [themePreference])
+  useLayoutEffect(() => {
+    if (id === 'logout') screenRef.current.querySelector('[data-back]')?.focus()
+  }, [id])
 
   function navigate(destination, mode) {
     if (!validScreen(destination) || destination === id) return
@@ -104,6 +135,15 @@ export default function Prototype() {
   })
 
   const handleKey = useEffectEvent(event => {
+    if (id === 'logout' && event.key === 'Tab') {
+      const buttons = [...screenRef.current.querySelectorAll('[role="dialog"] button')]
+      const boundary = event.shiftKey ? buttons[0] : buttons.at(-1)
+      if (document.activeElement === boundary) {
+        event.preventDefault()
+        ;(event.shiftKey ? buttons.at(-1) : buttons[0]).focus()
+      }
+      return
+    }
     if (event.target.closest('input:not([type="checkbox"]), textarea') || event.metaKey || event.ctrlKey || event.altKey) return
     const key = event.key.toLowerCase()
     if (key === 's') {
@@ -177,6 +217,7 @@ export default function Prototype() {
   }, [id, state.msgs])
 
   function action(name, key) {
+    if (accountAction(name, key, { state, mutate, navigate, toast, logout })) return
     switch (name) {
       case 'play': mutate(next => { next.playing = next.playing === key ? null : key }); break
       case 'chip': mutate(next => { if (next.chips.has(key)) next.chips.delete(key); else next.chips.add(key) }); break
@@ -214,23 +255,23 @@ export default function Prototype() {
         toast(status === 'add' ? `Request sent to @${key}` : `Request to @${key} cancelled`)
         break
       }
-      case 'avTab': mutate(next => { next.draft.tab = key }); break
+      case 'avTab': mutate(next => { avatarDraft(next).tab = key }); break
       case 'cycle': {
         const [option, direction] = key.split(':')
         const length = AVO[option].length
-        mutate(next => { next.draft[option] = (next.draft[option] + Number(direction) + length) % length })
+        mutate(next => { const draft = avatarDraft(next); draft[option] = (draft[option] + Number(direction) + length) % length })
         break
       }
       case 'swatch': {
         const [option, value] = key.split(':')
-        mutate(next => { next.draft[option] = Number(value) })
+        mutate(next => { avatarDraft(next)[option] = Number(value) })
         break
       }
       case 'shuffle': {
         const lengths = Object.fromEntries(Object.entries(AVO).map(([option, values]) => [option, values.length]))
         for (const [option, colors] of Object.entries(AV_COLORS)) lengths[option] = colors.length
         const values = Object.fromEntries(Object.entries(lengths).map(([option, length]) => [option, Math.floor(Math.random() * length)]))
-        mutate(next => { next.draft = { ...next.draft, ...values } })
+        mutate(next => { Object.assign(avatarDraft(next), values) })
         break
       }
       case 'saveAvatar': mutate(next => { next.avatar = { ...next.draft } }); back(); toast('Avatar saved'); break
@@ -245,6 +286,7 @@ export default function Prototype() {
       return
     }
     if (target.disabled) return
+    if (target.dataset.trackId) mutate(next => { next.selectedTrackId = target.dataset.trackId })
     if (target.dataset.action) action(target.dataset.action, target.dataset.key)
     if (target.dataset.missing) toast(`No frame for "${target.dataset.missing}" yet`)
     if ('back' in target.dataset) back()
@@ -254,6 +296,7 @@ export default function Prototype() {
   function handleSubmit(event) {
     event.preventDefault()
     switch (event.target.dataset.form) {
+      case 'join': action('createAccount'); break
       case 'signin': navigate('discover', 'tab'); break
       case 'search': toast('No frame for search results yet'); break
       case 'drop':
@@ -292,13 +335,21 @@ export default function Prototype() {
     }
   }
 
-  const markup = createScreenMarkup(id, state)
+  const markup = createScreenMarkup(id, { ...state, themePreference })
   const screenDocument = new DOMParser().parseFromString(markup, 'text/html')
   const targets = [...screenDocument.querySelectorAll('[data-go]')].filter((element, index, elements) =>
     element.dataset.go !== id && elements.findIndex(other => other.dataset.go === element.dataset.go) === index)
   const backTarget = screenDocument.querySelector('[data-back],[data-action="dismiss"]')
   const content = parse(markup, {
     replace(node) {
+      if (node.name === 'div' && 'inert' in node.attribs) {
+        return <div inert aria-hidden="true">{domToReact(node.children)}</div>
+      }
+      if (node.name === 'select' && 'data-theme-select' in node.attribs) {
+        return <select aria-label="Appearance" value={themePreference} onChange={event => setThemePreference(event.target.value)}>
+          <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
+        </select>
+      }
       if ((node.name === 'input' || node.name === 'textarea') && node.attribs.id) {
         const props = attributesToProps(node.attribs)
         delete props.defaultValue
@@ -319,7 +370,7 @@ export default function Prototype() {
           <div>
             <p className="eyebrow">Lo-fi prototype</p>
             <h1>Melody</h1>
-            <p className="panel-sub">13 frames, one at a time. Tap through it like the real app, or jump to any frame here.</p>
+            <p className="panel-sub">{FRAMES.length} frames, one at a time. Tap through it like the real app, or jump to any frame here.</p>
             <a className="version-link" href="./hifi/">Open hi-fi prototype</a>
           </div>
           <button className="panel-close" type="button" onClick={() => setPanelOpen(false)}>Done</button>
@@ -362,7 +413,7 @@ export default function Prototype() {
           <div className="frame-label"><span><b id="frameName">{frame.name}</b></span><span id="frameNum">{String(frame.n).padStart(2, '0')} / {FRAMES.length}</span></div>
           <div className={`frame${hotspots || flashing ? ' hot' : ''}`} id="frame">
             <div key={id} className={`screen${animation ? ` a-${animation}` : ''}`} id="screen" data-screen={id} ref={screenRef} onClick={handleClick} onSubmit={handleSubmit}>{content}</div>
-            <img className="orig" id="orig" src={`${import.meta.env.BASE_URL}wireframes/${frame.file}`} alt={`Original ${frame.name} wireframe`} hidden={!overlay} />
+            <img className="orig" id="orig" src={frame.file ? `${import.meta.env.BASE_URL}wireframes/${frame.file}` : undefined} alt={`Original ${frame.name} wireframe`} hidden={!overlay || !frame.file} />
             <div className={`toast${notice ? ' show' : ''}`} id="toast" role="status" aria-live="polite" style={{ bottom: screenDocument.querySelector('.tabbar,.sheet-foot,.composer-bar') ? undefined : '40px' }}>{notice && <span>{notice.message}</span>}</div>
           </div>
         </div>

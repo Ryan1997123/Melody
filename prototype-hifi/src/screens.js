@@ -1,5 +1,6 @@
 import { AV_COLORS, AV_TABS, initialAvatar, avatarLabel, avatarSVG, personAvatarSVG } from './avatars.js';
-import { DISCOVER_MOODS, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
+import { DISCOVER_MOODS, FIGMA_CHARTS, FIGMA_CHAT, FIGMA_SONG, FIGMA_TRENDING, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
+import { accountFrames, accountScreens, accountState } from '../../prototype-react/src/account-flows.js'
 
 /* ---------- Frames ---------- */
 export const FRAMES = [
@@ -18,6 +19,8 @@ export const FRAMES = [
   { id: 'add-friends', name: 'Add friends', file: '12-add-friends.png', figmaNode: '79:557', group: 'People', chain: ['friends'] },
   { id: 'avatar', name: 'Avatar editor', file: '13-avatar-editor.png', figmaNode: '79:625', group: 'Profile', sheet: true, chain: ['profile'] },
   { id: 'components', name: 'Components', figmaNode: '77:5', group: 'Design system' },
+  ...accountFrames(['101:1927', '101:1976', '101:2003', '101:2081', '101:2134', '101:2236', '106:2193', '106:2270'],
+    ['102:2404', '102:2445', '102:2468', '102:2524', '102:2559', '102:2601', '106:2480', '106:2523']),
 ];
 export const byId = Object.fromEntries(FRAMES.map((f, i) => [f.id, { ...f, n: i + 1 }]));
 export const TABS = ['discover', 'friends', 'chats', 'profile'];
@@ -50,8 +53,9 @@ const ic = {
 const FRIENDS = ['rae', 'pip', 'jules', 'noor', 'dmitri', 'sam', 'lou', 'kit'];
 export function initState() {
   return {
+    ...accountState(),
     catalog: SAMPLE_TRACKS,
-    selectedTrackId: SAMPLE_TRACKS[0].id,
+    selectedTrackId: FIGMA_SONG.id,
     searchResults: [],
     searchQuery: '',
     searchSource: 'local',
@@ -59,7 +63,7 @@ export function initState() {
     searchError: '',
     topTracks: [],
     handle: 'ryan',
-    bio: 'Collecting songs that feel like a place you have been.',
+    bio: 'Night drives, sad bangers and anything with a good bridge.',
     profileDraft: null,
     profileError: '',
     chips: new Set(),
@@ -102,7 +106,7 @@ export function createScreenMarkup(id, S) {
   const searching = Boolean(S.searchQuery)
   const discoverTracks = filterDiscoverTracks(
     searching && S.searchSource === 'spotify' ? S.searchResults :
-      searching ? S.catalog : (S.topTracks.length ? S.topTracks : SAMPLE_TRACKS),
+      searching ? S.catalog : (S.topTracks.length ? S.topTracks : FIGMA_CHARTS),
     searching && S.searchSource !== 'spotify' ? S.searchQuery : '',
     S.chips,
   )
@@ -145,7 +149,7 @@ export function createScreenMarkup(id, S) {
         <button class="btn block" type="button" data-go="discover" data-mode="tab">Continue with Apple</button>
         <button class="btn block" type="button" data-go="discover" data-mode="tab">Continue with Google</button>
       </div>
-      <button class="link" type="button" data-missing="Create an account">New here? Create an account</button>
+      <button class="link" type="button" data-go="join">New here? Create an account</button>
       <p class="prototype-switch">Looking for the lo-fi version? <a href="../" aria-label="Open the lo-fi prototype">Go to lo-fi</a></p>
     </div></div>`,
 
@@ -160,8 +164,8 @@ export function createScreenMarkup(id, S) {
       ${searching ? `<section class="sec discover-results" aria-label="Search results"><h2 class="h-sec">${S.searchSource === 'spotify' ? 'Spotify search results' : 'Matching songs in Melody'}</h2>${discoverTracks.length ? `<ul class="rows">${discoverTracks.map(track => songRow(`search-${track.id}`, { track })).join('')}</ul>` : '<p role="status">No songs match your search and selected moods. Try another search or clear a mood.</p>'}<button class="link" type="button" data-action="clearSearch">Clear search</button></section>` : ''}
       <section class="card sh fill talk">
         <h2 class="h-card">Your friends are talking about</h2>
-        <button class="talk-item" type="button" data-go="song" data-track-id="${esc(S.catalog[0].id)}"><b>${esc(S.catalog[0].title)} · ${esc(S.catalog[0].artist)}</b> <span>(3 comments)</span></button>
-        <button class="talk-item" type="button" data-go="song" data-track-id="${esc(S.catalog[1 % S.catalog.length].id)}"><b>${esc(S.catalog[1 % S.catalog.length].title)} · ${esc(S.catalog[1 % S.catalog.length].artist)}</b> <span>(1 comment)</span></button>
+        <button class="talk-item" type="button" data-go="song" data-track-id="${FIGMA_SONG.id}"><b>Ribs · Lorde</b> <span>(3 comments)</span></button>
+        <button class="talk-item" type="button" data-go="song" data-track-id="${FIGMA_CHAT.id}"><b>Nights · Frank Ocean</b> <span>(1 comment)</span></button>
       </section>
       ${!searching ? `<section class="sec discover-results"><h2 class="h-sec">${S.topTracks.length ? 'Your top tracks' : 'Top charts'}</h2>
         ${discoverTracks.length ? `<ol class="rows">${discoverTracks.slice(0, 5).map((track, index) => songRow(`chart${index + 1}`, { rank: index + 1, track })).join('')}</ol>` : '<p role="status">No songs match these moods. Clear a mood to see more songs.</p>'}
@@ -185,7 +189,7 @@ export function createScreenMarkup(id, S) {
 
     chats: () => `<div class="scr"><div class="scroll">
       <div class="head">${pageTitle('Chats')}<p class="lead">Talk music with your friends.</p></div>
-      <ul class="rows">${[['c1', 'Sent you “Yellow”', '3m', 'rae'], ['c2', 'You: ok you win, this is a banger', '1h', 'pip'], ['c3', 'the chorus!!', '5h', 'jules'], ['c4', 'Say hi', '', 'noor']].map(([k, msg, t, handle]) =>
+      <ul class="rows">${[['c1', 'Sent you “Nights”', '3m', 'rae'], ['c2', 'You: ok you win, this is a banger', '1h', 'pip'], ['c3', 'the chorus!!', '5h', 'jules'], ['c4', 'Say hi', '', 'noor']].map(([k, msg, t, handle]) =>
         `<li><button class="row-main chat-row" type="button" data-action="read" data-key="${k}" data-go="conversation">${av(52, '', handle)}<span class="tt"><b>@${handle}</b><span>${msg}</span></span><span class="chat-meta">${t ? `<time>${t}</time>` : ''}${S.unread[k] ? '<i class="dot" aria-label="Unread"></i>' : ''}</span></button></li>`).join('')}</ul>
       <div class="dashed">
         <h3>Want more people to chat with?</h3>
@@ -195,7 +199,7 @@ export function createScreenMarkup(id, S) {
     </div>${tabbar('chats')}</div>`,
 
     profile: () => `<div class="scr"><div class="scroll">
-      ${pageTitle('Profile')}
+      <div class="title-row"><h1 class="h-page">Profile</h1><div class="title-actions"><button class="icon-btn" type="button" data-go="settings" aria-label="Settings">⚙</button>${themeToggle()}</div></div>
       <section class="card sh fill me-card">
         <span class="av" style="--sz:140px">${avatarSVG(S.avatar)}</span>
         <h2 class="handle-xl">@${esc(S.handle)}</h2>
@@ -221,7 +225,7 @@ export function createScreenMarkup(id, S) {
       ${stepper(1)}
       ${searchBox('drop-q', 'Search for the song', 'search')}
       <section class="sec"><p class="kicker">Trending now</p>
-        <ul class="rows">${(S.searchResults.length ? S.searchResults : S.catalog).map((track, index) => songRow('trend' + (index + 1), { action: 'pick', track })).join('')}</ul>
+        <ul class="rows">${(S.searchResults.length ? S.searchResults : FIGMA_TRENDING).map((track, index) => songRow('trend' + (index + 1), { action: 'pick', track })).join('')}</ul>
       </section>`),
 
     'drop-why': () => sheet(`
@@ -268,7 +272,7 @@ export function createScreenMarkup(id, S) {
       <div class="scroll msgs"><div class="msgs-inner">${S.msgs.map(m => {
         if (m.day) return `<p class="day">${m.day}</p>`;
         if (m.stamp) return `<p class="stamp ${m.side}">${m.stamp}</p>`;
-        if (m.song) return `<div class="bub them bub-song"><button class="row-main" type="button" data-go="song" data-track-id="${esc(S.catalog[1 % S.catalog.length].id)}">${art(52, S.catalog[1 % S.catalog.length])}<span class="tt"><b>${esc(S.catalog[1 % S.catalog.length].title)}</b><span>${esc(S.catalog[1 % S.catalog.length].artist)}</span></span></button>${play('dm')}</div>`;
+        if (m.song) return `<div class="bub them bub-song"><button class="row-main" type="button" data-go="song" data-track-id="${FIGMA_CHAT.id}">${art(52, FIGMA_CHAT)}<span class="tt"><b>Nights</b><span>Frank Ocean</span></span></button>${play('dm', '', FIGMA_CHAT)}</div>`;
         return `<p class="bub ${m.from}">${esc(m.text)}</p>`;
       }).join('')}</div></div>
       <form class="composer-bar" data-form="msg"><input class="field" id="msg-in" placeholder="Message" value="${val('msg-in')}" autocomplete="off" aria-label="Message"><button class="icon-btn" type="submit" aria-label="Send">${ic.right}</button></form>
@@ -359,5 +363,6 @@ export function createScreenMarkup(id, S) {
   }
 
 
-  return screenMarkup(id);
+  const flows = accountScreens(S, { esc, sheet, profile: SCREENS.profile, themePreference: S.themePreference, realSpotify: true })
+  return flows[id] ? flows[id]() : screenMarkup(id);
 }

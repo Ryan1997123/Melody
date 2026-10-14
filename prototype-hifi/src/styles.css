@@ -1,3 +1,4 @@
+@import '../../prototype-react/src/account-flows.css';
 /* One centred phone; review controls are opt-in. On phones the frame fills the viewport. */
 :root {
   /* Prototype chrome (follows the viewer's theme) */
@@ -377,6 +378,7 @@ kbd { margin-left: auto; padding: 1px 6px; border: 1px solid var(--chrome-line);
 :root {
   color-scheme: light;
   --surface: #ffffff;
+  --muted-surface: #f7ddeb;
   --canvas: #fff0f7;
   --panel: #fff0f7;
   --chrome-ink: #000000;
@@ -520,11 +522,12 @@ body { background: var(--canvas); }
   --panel: #24132f;
   --paper: #24132f;
   --surface: #331c42;
+  --muted-surface: #452a57;
   --card: #331c42;
   --ink: #fff0f7;
   --mute: #d6c4e0;
-  --hint: #a68bb5;
-  --ph: #331c42;
+  --hint: #a08da9;
+  --ph: #452a57;
   --line-ph: #fff0f7;
   --line-soft: #d6c4e0;
   --chrome-ink: #fff0f7;
@@ -570,6 +573,11 @@ body { background: var(--canvas); }
   background-color: var(--surface);
   color: var(--mute);
 }
+.screen .genre-chips .chip[aria-pressed="true"] { background: #ff7ac6; color: #000; }
+.screen .onboarding .available { background: #6fedc0; color: #000; padding: 6px; }
+.screen .onboarding [data-action="shuffle"] { background: #9fa8ff; color: #000; }
+.settings-row { background: var(--surface); }
+.prototype-note { background: var(--muted-surface); padding: 8px; }
 [data-theme="dark"] .swatch-tile { color: #000; }
 [data-theme="dark"] .pick[aria-pressed="true"] .av { border-color: #6fedc0; }
 .switch select { padding: 6px; border: 2px solid var(--chrome-line); background: var(--surface); color: var(--chrome-ink); }

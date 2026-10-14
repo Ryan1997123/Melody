@@ -61,6 +61,20 @@ Wischofsky (CC0 1.0). SVGs are generated locally using `@dicebear/core` and
 hair, facial features, accessories, skin tones, and backgrounds. Save applies
 the draft; Cancel discards it. Changes reset on refresh, like other prototype data.
 
+## Account flows
+
+The updated Figma map adds Join Melody, demo email verification, avatar setup,
+genre selection (at least three), friend suggestions, and You're in, plus
+Profile Settings and a Log out confirmation. These are browser-only prototype
+interactions, not real authentication: no account or verification email is
+created, and a demo password is discarded on submission. Use invented credentials.
+Log out returns to Sign in while retaining demo content until page refresh.
+Appearance changes prototype chrome only; the lo-fi screens remain grayscale.
+
+Account templates/actions and CSS in `src/account-flows.js` and
+`src/account-flows.css` are also used by hi-fi. Song metadata is shared from
+`../prototype-hifi/src/data.js`; lo-fi keeps placeholder artwork.
+
 ## Public Usability Testing
 
 The GitHub Pages workflow is `.github/workflows/deploy-prototype.yml` at the

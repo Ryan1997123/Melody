@@ -1,4 +1,6 @@
 import { AV_COLORS, AV_TABS, initialAvatar, avatarLabel, avatarSVG, personAvatarSVG } from './avatars.js';
+import { accountFrames, accountScreens, accountState } from './account-flows.js'
+import { FIGMA_CHARTS, FIGMA_CHAT, FIGMA_SONG, FIGMA_TRENDING, SAMPLE_TRACKS } from '../../prototype-hifi/src/data.js'
 
 /* ---------- Frames ---------- */
 export const FRAMES = [
@@ -15,6 +17,7 @@ export const FRAMES = [
   { id: 'person', name: 'Someone’s profile', file: '11-someones-profile.png', group: 'People', chain: ['friends'] },
   { id: 'add-friends', name: 'Add friends', file: '12-add-friends.png', group: 'People', chain: ['friends'] },
   { id: 'avatar', name: 'Avatar editor', file: '13-avatar-editor.png', group: 'Profile', sheet: true, chain: ['profile'] },
+  ...accountFrames(['99:3341', '99:3382', '99:3405', '99:3461', '99:3496', '99:3538', '107:317', '107:379']),
 ];
 export const byId = Object.fromEntries(FRAMES.map((f, i) => [f.id, { ...f, n: i + 1 }]));
 export const TABS = ['discover', 'friends', 'chats', 'profile'];
@@ -49,6 +52,9 @@ const COVER = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden
 const FRIENDS = ['rae', 'pip', 'jules', 'noor', 'dmitri', 'sam', 'lou', 'kit'];
 export function initState() {
   return {
+    ...accountState(),
+    catalog: SAMPLE_TRACKS,
+    selectedTrackId: FIGMA_SONG.id,
     playing: null,
     chips: new Set(),
     requests: ['[handle]'],
@@ -85,11 +91,15 @@ export function createScreenMarkup(id, S) {
   const val = id => esc(S.inputs[id] || '');
   const av = (sz, extra = '', seed = 'melody-friend') => `<span class="av ${sz < 44 ? 'thin' : ''}" style="--sz:${sz}px" ${extra}>${personAvatarSVG(seed)}</span>`;
   const art = sz => `<span class="art" style="--sz:${sz}px"></span>`;
+  const selectedTrack = S.catalog.find(track => track.id === S.selectedTrackId) || FIGMA_SONG
   const play = (key, cls = '') => {
     const on = S.playing === key;
     return `<button class="play ${cls} ${on ? 'on' : ''}" type="button" data-action="play" data-key="${key}" aria-label="${on ? 'Pause' : 'Play'} preview">${on ? ic.pause : ic.play}</button>`;
   };
-  const songRow = (key, opts = {}) => `<li><button class="row-main" type="button" ${opts.action ? `data-action="${opts.action}" data-key="${key}"` : 'data-go="song"'}>${opts.rank ? `<span class="rank">${opts.rank}</span>` : ''}${art(52)}<span class="tt"><b>[Song title]</b><span>[Artist]</span></span></button>${play(key)}</li>`;
+  const songRow = (key, opts = {}) => {
+    const track = (key.startsWith('trend') ? FIGMA_TRENDING : FIGMA_CHARTS)[Number(key.replace(/\D/g, '')) - 1]
+    return `<li><button class="row-main" type="button" data-track-id="${track.id}" ${opts.action ? `data-action="${opts.action}" data-key="${key}"` : 'data-go="song"'}>${opts.rank ? `<span class="rank">${opts.rank}</span>` : ''}${art(52)}<span class="tt"><b>${esc(track.title)}</b><span>${esc(track.artist)}</span></span></button>${play(key)}</li>`
+  }
   const searchBox = (id, ph, form) => `<form class="search" data-form="${form}" role="search">${ic.search}<input id="${id}" type="search" placeholder="${ph}" value="${val(id)}" autocomplete="off" aria-label="${ph}"></form>`;
   function tabbar(active) {
     const t = (id, label, icon) => `<button class="tab ${active === id ? 'on' : ''}" type="button" data-go="${id}" data-mode="tab" ${active === id ? 'aria-current="page"' : ''}>${icon}<span>${label}</span></button>`;
@@ -116,7 +126,7 @@ export function createScreenMarkup(id, S) {
         <button class="btn block" type="button" data-go="discover" data-mode="tab">Continue with Apple</button>
         <button class="btn block" type="button" data-go="discover" data-mode="tab">Continue with Google</button>
       </div>
-      <button class="link" type="button" data-missing="Create an account">New here? Create an account</button>
+      <button class="link" type="button" data-go="join">New here? Create an account</button>
       <p class="prototype-switch">Want to see the hi-fi version? <a href="./hifi/">Open hi-fi prototype</a></p>
     </div></div>`,
 
@@ -126,8 +136,8 @@ export function createScreenMarkup(id, S) {
       <div class="chips">${['Rainy day', 'Gym', 'Road trip', 'Focus', 'Throwbacks'].map(c => `<button class="chip" type="button" data-action="chip" data-key="${c}" aria-pressed="${S.chips.has(c)}">${c}</button>`).join('')}</div>
       <section class="card sh fill talk">
         <h2 class="h-card">Your friends are talking about</h2>
-        <button class="talk-item" type="button" data-go="song"><b>[Song title] · [Artist]</b> (3 comments)</button>
-        <button class="talk-item" type="button" data-go="song"><b>[Song title] · [Artist]</b> (1 comment)</button>
+        <button class="talk-item" type="button" data-go="song" data-track-id="${FIGMA_SONG.id}"><b>Ribs · Lorde</b> (3 comments)</button>
+        <button class="talk-item" type="button" data-go="song" data-track-id="${FIGMA_CHAT.id}"><b>Nights · Frank Ocean</b> (1 comment)</button>
       </section>
       <section class="sec"><h2 class="h-sec">Top charts</h2>
         <ol class="rows">${[1, 2, 3, 4, 5].map(n => songRow('chart' + n, { rank: n })).join('')}</ol>
@@ -151,7 +161,7 @@ export function createScreenMarkup(id, S) {
 
     chats: () => `<div class="scr"><div class="scroll">
       <div class="head"><h1 class="h-page">Chats</h1><p class="lead">Talk music with your friends.</p></div>
-      <ul class="rows">${[['c1', 'Sent you [Song title]', '3m'], ['c2', 'You: ok you win, this is a banger', '1h'], ['c3', 'the chorus!!', '5h'], ['c4', 'Say hi', '']].map(([k, msg, t]) =>
+      <ul class="rows">${[['c1', 'Sent you “Nights”', '3m'], ['c2', 'You: ok you win, this is a banger', '1h'], ['c3', 'the chorus!!', '5h'], ['c4', 'Say hi', '']].map(([k, msg, t]) =>
         `<li><button class="row-main chat-row" type="button" data-action="read" data-key="${k}" data-go="conversation">${av(52)}<span class="tt"><b>@[friend]</b><span>${msg}</span></span><span class="chat-meta">${t ? `<time>${t}</time>` : ''}${S.unread[k] ? '<i class="dot" aria-label="Unread"></i>' : ''}</span></button></li>`).join('')}</ul>
       <div class="dashed">
         <h3>Want more people to chat with?</h3>
@@ -161,11 +171,11 @@ export function createScreenMarkup(id, S) {
     </div>${tabbar('chats')}</div>`,
 
     profile: () => `<div class="scr"><div class="scroll">
-      <div class="title-row"><h1 class="h-page">Profile</h1><button class="icon-btn" type="button" data-missing="Settings" aria-label="Settings">${ic.sun}</button></div>
+      <div class="title-row"><h1 class="h-page">Profile</h1><button class="icon-btn" type="button" data-go="settings" aria-label="Settings">⚙</button></div>
       <section class="card sh fill me-card">
         <span class="av" style="--sz:140px">${avatarSVG(S.avatar)}</span>
-        <h2 class="handle-xl">@[your handle]</h2>
-        <p>[Your bio, up to 160 characters]</p>
+        <h2 class="handle-xl">@${esc(S.handle)}</h2>
+        <p>${esc(S.bio)}</p>
         <div class="btn-row"><button class="btn sh" type="button" data-go="avatar">Edit avatar</button><button class="btn pri sh" type="button" data-missing="Edit profile">Edit profile</button></div>
       </section>
       <div class="stats">
@@ -193,7 +203,7 @@ export function createScreenMarkup(id, S) {
       <div class="title-row"><h1 class="h-page">Drop a song</h1><button class="link" type="button" data-action="closeDrop">Cancel</button></div>
       ${stepper(2)}
       <form class="card sh fill why" data-form="drop">
-        <div class="picked">${art(56)}<span class="tt"><b>[Song title]</b><span>[Artist]</span></span><button class="btn sm" type="button" data-back>Change</button></div>
+        <div class="picked">${art(56)}<span class="tt"><b>${esc(selectedTrack.title)}</b><span>${esc(selectedTrack.artist)}</span></span><button class="btn sm" type="button" data-back>Change</button></div>
         <label class="label" for="drop-note">Your note</label>
         <textarea class="field" id="drop-note" rows="4" maxlength="500" placeholder="Why this song, why now?">${val('drop-note')}</textarea>
         <div class="helper"><span>Visible to your friends and on the song page</span><span id="drop-count">${(S.inputs['drop-note'] || '').length}/500</span></div>
@@ -203,7 +213,7 @@ export function createScreenMarkup(id, S) {
     song: () => `<div class="scr"><div class="scroll">
       <button class="icon-btn back" type="button" data-back aria-label="Back">${ic.left}</button>
       <div class="cover">${COVER}</div>
-      <div class="song-meta"><h1 class="song-title">[Song title]</h1><p class="song-sub">[Artist] · [Album]</p></div>
+      <div class="song-meta"><h1 class="song-title">${esc(selectedTrack.title)}</h1><p class="song-sub">${esc(selectedTrack.artist)} · ${esc(selectedTrack.album)}</p></div>
       <div class="song-actions">${play('song', 'sh')}<button class="btn sh" type="button" data-missing="Open in Spotify">Open in Spotify</button><button class="btn sh" type="button" data-go="send">Send</button></div>
       <h2 class="h-sec">Comments</h2>
       <form class="card sh fill composer" data-form="comment">
@@ -221,7 +231,7 @@ export function createScreenMarkup(id, S) {
       const n = S.sendSel.size;
       return sheet(`
         <div class="title-row"><h1 class="h-page">Send to friends</h1><button class="link" type="button" data-back>Cancel</button></div>
-        <div class="send-song">${art(48)}<span class="songline"><b>[Song title]</b> · <span class="ar">[Artist]</span></span></div>
+        <div class="send-song">${art(48)}<span class="songline"><b>${esc(selectedTrack.title)}</b> · <span class="ar">${esc(selectedTrack.artist)}</span></span></div>
         <div class="picks">${FRIENDS.map(f => `<button class="pick" type="button" data-action="sendPick" data-key="${f}" aria-pressed="${S.sendSel.has(f)}">${av(64, '', f)}<span class="chk">${ic.check}</span><span>@${f}</span></button>`).join('')}</div>
         <div class="msg-field"><label class="label" for="send-msg">Message (optional)</label><input class="field" id="send-msg" placeholder="Add a message" value="${val('send-msg')}" autocomplete="off"></div>
         <button class="btn pri sh big block" type="button" data-action="send" ${n ? '' : 'disabled'}>${n ? `Send to ${n} friend${n > 1 ? 's' : ''}` : 'Pick at least one friend'}</button>`);
@@ -232,7 +242,7 @@ export function createScreenMarkup(id, S) {
       <div class="scroll msgs"><div class="msgs-inner">${S.msgs.map(m => {
         if (m.day) return `<p class="day">${m.day}</p>`;
         if (m.stamp) return `<p class="stamp ${m.side}">${m.stamp}</p>`;
-        if (m.song) return `<div class="bub them bub-song"><button class="row-main" type="button" data-go="song">${art(52)}<span class="tt"><b>[Song title]</b><span>[Artist]</span></span></button>${play('dm')}</div>`;
+        if (m.song) return `<div class="bub them bub-song"><button class="row-main" type="button" data-go="song" data-track-id="${FIGMA_CHAT.id}">${art(52)}<span class="tt"><b>Nights</b><span>Frank Ocean</span></span></button>${play('dm')}</div>`;
         return `<p class="bub ${m.from}">${esc(m.text)}</p>`;
       }).join('')}</div></div>
       <form class="composer-bar" data-form="msg"><input class="field" id="msg-in" placeholder="Message" value="${val('msg-in')}" autocomplete="off" aria-label="Message"><button class="icon-btn" type="submit" aria-label="Send">${ic.right}</button></form>
@@ -290,5 +300,6 @@ export function createScreenMarkup(id, S) {
   }
 
 
-  return screenMarkup(id);
+  const flows = accountScreens(S, { esc, sheet, profile: SCREENS.profile, themePreference: S.themePreference })
+  return flows[id] ? flows[id]() : screenMarkup(id);
 }
