@@ -1,7 +1,86 @@
 import { test, expect } from '@playwright/test'
 import { FRAMES } from '../src/screens.js'
 import { initialAvatar } from '../src/avatars.js'
-import { SAMPLE_TRACKS, filterDiscoverTracks } from '../src/data.js'
+import { CURATED_TRACKS, DISCOVER_BATCH_SIZE, DISCOVER_MOODS, SAMPLE_TRACKS, filterDiscoverTracks } from '../src/data.js'
+
+async function loadAllDiscoverSongs(page, total) {
+  const rows = page.locator('.discover-results li')
+  while (await rows.count() < total) {
+    const before = await rows.count()
+    await page.getByRole('button', { name: 'Load more songs', exact: true }).scrollIntoViewIfNeeded()
+    await expect.poll(() => rows.count()).toBeGreaterThan(before)
+  }
+}
+
+test('Curated library has 100+ unique Spotify songs and at least 20 for each mood', () => {
+  expect(CURATED_TRACKS.length).toBeGreaterThanOrEqual(100)
+  expect(new Set(CURATED_TRACKS.map(track => track.id)).size).toBe(CURATED_TRACKS.length)
+  for (const track of CURATED_TRACKS) {
+    expect(track.id).toMatch(/^[A-Za-z0-9]{22}$/)
+    expect(track.title).toBeTruthy()
+    expect(track.artist).toBeTruthy()
+    expect(track.album).toBeTruthy()
+    expect(track.moods.length).toBeGreaterThan(0)
+    for (const mood of track.moods) expect(DISCOVER_MOODS).toContain(mood)
+  }
+  for (const mood of DISCOVER_MOODS) {
+    expect(filterDiscoverTracks(CURATED_TRACKS, '', new Set([mood])).length).toBeGreaterThanOrEqual(20)
+  }
+})
+
+test('Discover defers artwork and rows, and resets batches for each mood and search', async ({ page }) => {
+  const artworkIds = new Set()
+  await page.route('https://open.spotify.com/oembed**', route => {
+    artworkIds.add(new URL(new URL(route.request().url()).searchParams.get('url')).pathname.split('/').at(-1))
+    return route.fulfill({ json: { thumbnail_url: '' } })
+  })
+  await page.goto('/#/discover')
+  const rows = page.locator('.discover-results li')
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  await expect.poll(() => artworkIds.size).toBe(DISCOVER_BATCH_SIZE)
+  await page.getByRole('button', { name: 'Load more songs', exact: true }).scrollIntoViewIfNeeded()
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE * 2)
+  await expect.poll(() => artworkIds.size).toBe(DISCOVER_BATCH_SIZE * 2)
+  for (const mood of DISCOVER_MOODS) {
+    const chip = page.getByRole('button', { name: mood, exact: true })
+    await chip.click()
+    const expected = filterDiscoverTracks(CURATED_TRACKS, '', new Set([mood]))
+    await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+    await expect(page.locator('.discover-results')).toContainText(`Showing 12 of ${expected.length} songs`)
+    await loadAllDiscoverSongs(page, expected.length)
+    expect(await rows.evaluateAll(elements => elements.map(el => el.dataset.trackId))).toEqual(expected.map(track => track.id))
+    await chip.click()
+    await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  }
+  const search = page.getByRole('searchbox', { name: 'Search songs or artists' })
+  await search.fill('Daft Punk')
+  await search.press('Enter')
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  await loadAllDiscoverSongs(page, filterDiscoverTracks(CURATED_TRACKS, 'Daft Punk', new Set()).length)
+  await expect(rows).toHaveCount(27)
+  await page.getByRole('button', { name: 'Clear search', exact: true }).click()
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+})
+
+test('Discover Load more supports keyboard access without automatic observation', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.IntersectionObserver = class {
+      observe() {}
+      disconnect() {}
+    }
+  })
+  await page.goto('/#/discover')
+  const rows = page.locator('.discover-results li')
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  const more = page.getByRole('button', { name: 'Load more songs', exact: true })
+  await more.focus()
+  await page.keyboard.press('Enter')
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE * 2)
+  await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+})
 
 test('Discover requests 50 Spotify top tracks, scrolls to the last song, and explains untagged moods', async ({ page }) => {
   await page.addInitScript(() => {
@@ -24,6 +103,8 @@ test('Discover requests 50 Spotify top tracks, scrolls to the last song, and exp
   const results = page.locator('.discover-results')
   const rows = results.locator('li')
   await expect(results.getByRole('heading')).toHaveText('Your top tracks')
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  await loadAllDiscoverSongs(page, 50)
   await expect(rows).toHaveCount(50)
   expect(requestedLimit).toBe('50')
   await expect(rows.last().locator('.rank')).toHaveText('50')
@@ -38,19 +119,36 @@ test('Discover requests 50 Spotify top tracks, scrolls to the last song, and exp
   await expect(results).toContainText('Espresso')
   await expect(page.locator('#screen')).toContainText('48 Spotify tracks have no Melody mood tags')
   await page.getByRole('button', { name: 'Gym', exact: true }).click()
-  await expect(rows).toHaveCount(50)
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
   await expect(page.locator('#screen')).not.toContainText('hidden by these filters')
+  await page.getByRole('button', { name: 'Melody library', exact: true }).click()
+  await expect(results).toContainText(`of ${CURATED_TRACKS.length} songs`)
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  const search = page.getByRole('searchbox', { name: 'Search songs or artists' })
+  await search.fill('folklore')
+  await search.press('Enter')
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
+  await expect(rows.first()).toContainText('the 1')
+  await page.getByRole('button', { name: 'Clear search', exact: true }).click()
+  await page.getByRole('button', { name: 'Your top tracks', exact: true }).click()
+  await expect(results).toContainText('of 50 songs')
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
 })
 
-test('Disconnected Discover shows every curated demo song and scrolls beyond the first five', async ({ page }) => {
+test('Disconnected Discover loads a 100+ song curated library in scroll batches', async ({ page }) => {
   await page.goto('/#/discover')
   const rows = page.locator('.discover-results li')
-  await expect(rows).toHaveCount(18)
+  expect(CURATED_TRACKS.length).toBeGreaterThanOrEqual(100)
+  await expect(rows).toHaveCount(DISCOVER_BATCH_SIZE)
   await expect(page.locator('.discover-results')).toContainText('not live Spotify chart rankings')
+  await loadAllDiscoverSongs(page, CURATED_TRACKS.length)
+  await expect(rows).toHaveCount(CURATED_TRACKS.length)
+  await expect(page.getByRole('button', { name: 'Load more songs', exact: true })).toHaveCount(0)
+  expect(await rows.evaluateAll(elements => new Set(elements.map(el => el.dataset.trackId)).size)).toBe(CURATED_TRACKS.length)
   await rows.last().scrollIntoViewIfNeeded()
   await expect(rows.last()).toBeInViewport()
   await rows.last().locator('.row-main').click()
-  await expect(page.locator('.song-title')).toHaveText('Sunflower')
+  await expect(page.locator('.song-title')).toHaveText(CURATED_TRACKS.at(-1).title)
 })
 
 test('optional Spotify authorization restores onboarding identity, avatar, and genres', async ({ page }) => {
@@ -77,11 +175,11 @@ test('Discover searches local titles, artists, and albums and combines mood filt
   await page.goto('/#/discover')
   const results = page.locator('.discover-results')
   const search = page.getByRole('searchbox', { name: 'Search songs or artists' })
-  await expect(results.locator('li')).toHaveCount(SAMPLE_TRACKS.length)
+  await expect(results.locator('li')).toHaveCount(DISCOVER_BATCH_SIZE)
   await page.getByRole('button', { name: 'Gym', exact: true }).click()
-  await expect(results.locator('li')).toHaveCount(filterDiscoverTracks(SAMPLE_TRACKS, '', new Set(['Gym'])).length)
+  await expect(results.locator('li')).toHaveCount(Math.min(DISCOVER_BATCH_SIZE, filterDiscoverTracks(CURATED_TRACKS, '', new Set(['Gym'])).length))
   await page.getByRole('button', { name: 'Rainy day', exact: true }).click()
-  await expect(results.locator('li')).toHaveCount(filterDiscoverTracks(SAMPLE_TRACKS, '', new Set(['Gym', 'Rainy day'])).length)
+  await expect(results.locator('li')).toHaveCount(DISCOVER_BATCH_SIZE)
   await search.fill('Coldplay')
   await page.getByRole('button', { name: 'Search', exact: true }).click()
   await expect(results.locator('li')).toHaveCount(1)
@@ -94,12 +192,12 @@ test('Discover searches local titles, artists, and albums and combines mood filt
   for (const query of ['blinding', 'After Hours']) {
     await search.fill(query)
     await search.press('Enter')
-    await expect(results.locator('li')).toHaveCount(1)
+    await expect(results.locator('li')).toHaveCount(Math.min(DISCOVER_BATCH_SIZE, filterDiscoverTracks(CURATED_TRACKS, query, new Set()).length))
     await expect(results).toContainText('Blinding Lights')
   }
   await page.getByRole('button', { name: 'Clear search', exact: true }).click()
   await expect(search).toHaveValue('')
-  await expect(results.locator('li')).toHaveCount(SAMPLE_TRACKS.length)
+  await expect(results.locator('li')).toHaveCount(DISCOVER_BATCH_SIZE)
 })
 
 test('Discover Spotify search errors remain readable, can be retried, and filter curated remote tracks', async ({ page }) => {
@@ -163,7 +261,7 @@ test('Discover ignores an older Spotify response after a newer search', async ({
   await expect(page.locator('.discover-error')).toHaveCount(0)
   await expect(search).toHaveValue('new')
   await page.getByRole('button', { name: 'Clear search', exact: true }).click()
-  await expect(page.locator('.discover-results li')).toHaveCount(SAMPLE_TRACKS.length)
+  await expect(page.locator('.discover-results li')).toHaveCount(DISCOVER_BATCH_SIZE)
 })
 
 for (const failure of [

@@ -1,10 +1,11 @@
-import { Fragment, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
 import parse, { attributesToProps, domToReact } from 'html-react-parser'
 import { FRAMES, byId, TABS, validScreen, initState, createScreenMarkup } from './screens.js'
 import { AVO, AV_COLORS } from './avatars.js'
 import Artwork from './Artwork.jsx'
 import SpotifyPlayer from './SpotifyPlayer.jsx'
 import { accountAction } from '../../prototype-react/src/account-flows.js'
+import { DISCOVER_BATCH_SIZE } from './data.js'
 import { completeSpotifyAuth, disconnectSpotify, getTopTracks, searchSpotifyTracks, spotifyConnected, startSpotifyAuth } from './spotify.js'
 
 function routeId() {
@@ -66,6 +67,7 @@ export default function Prototype() {
   const [playRequest, setPlayRequest] = useState(null)
   const [playback, setPlayback] = useState(null)
   const [playerVisible, setPlayerVisible] = useState(false)
+  const [discoverPage, setDiscoverPage] = useState({ key: '', limit: DISCOVER_BATCH_SIZE })
   const [themePreference, setThemePreference] = useState(() => localStorage.getItem('melody-hifi-theme') || 'system')
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('melody-hifi-theme')
@@ -78,6 +80,37 @@ export default function Prototype() {
   const searchRequestRef = useRef(0)
   const id = route.stack.at(-1)
   const frame = byId[id]
+  const discoverPageKey = JSON.stringify([id, state.searchQuery, state.searchSource, [...state.chips].sort(),
+    state.discoverLibrary, state.topTracks.map(track => track.id), state.searchResults.map(track => track.id)])
+  if (discoverPage.key !== discoverPageKey) {
+    setDiscoverPage({ key: discoverPageKey, limit: DISCOVER_BATCH_SIZE })
+  }
+  const discoverLimit = discoverPage.key === discoverPageKey ? discoverPage.limit : DISCOVER_BATCH_SIZE
+
+  const loadDiscover = useCallback(total => {
+    setDiscoverPage(previous => ({
+      key: discoverPageKey,
+      limit: Math.min(total, (previous.key === discoverPageKey ? previous.limit : DISCOVER_BATCH_SIZE) + DISCOVER_BATCH_SIZE),
+    }))
+  }, [discoverPageKey])
+
+  useLayoutEffect(() => {
+    if (id === 'discover') screenRef.current.querySelector('.scroll').scrollTop = 0
+  }, [id, discoverPageKey])
+
+  useEffect(() => {
+    if (id !== 'discover') return
+    const more = screenRef.current.querySelector('[data-action="loadDiscover"]')
+    if (!more) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        observer.disconnect()
+        loadDiscover(Number(more.dataset.total))
+      }
+    }, { root: screenRef.current.querySelector('.scroll'), rootMargin: '0px 0px 100px 0px' })
+    observer.observe(more)
+    return () => observer.disconnect()
+  }, [id, discoverPageKey, discoverLimit, loadDiscover])
 
   function mutate(change) {
     setState(previous => {
@@ -327,6 +360,7 @@ export default function Prototype() {
     if (accountAction(name, key, { state, mutate, navigate, toast, logout })) return
     switch (name) {
       case 'theme': changeTheme(darkMode ? 'light' : 'dark'); break
+      case 'discoverSource': mutate(next => { next.discoverLibrary = key === 'curated' }); break
       case 'chip': mutate(next => { if (next.chips.has(key)) next.chips.delete(key); else next.chips.add(key) }); break
       case 'clearSearch':
         searchRequestRef.current += 1
@@ -450,6 +484,10 @@ export default function Prototype() {
       return
     }
     if (target.disabled) return
+    if (target.dataset.action === 'loadDiscover') {
+      loadDiscover(Number(target.dataset.total))
+      return
+    }
     if (target.dataset.action === 'play') {
       const track = state.catalog.find(item => item.id === target.dataset.trackId) ||
         state.searchResults.find(item => item.id === target.dataset.trackId)
@@ -485,12 +523,12 @@ export default function Prototype() {
           next.searchResults = []
           next.searchError = ''
           next.searchSource = 'local'
-          next.searchLoading = Boolean(query && state.spotify)
+          next.searchLoading = Boolean(query && state.spotify && !state.discoverLibrary)
         })
         if (!query) {
           return
         }
-        if (!state.spotify) {
+        if (!state.spotify || state.discoverLibrary) {
           return
         }
         searchSpotifyTracks(query).then(results => {
@@ -547,7 +585,7 @@ export default function Prototype() {
     }
   }
 
-  const markup = createScreenMarkup(id, { ...state, darkMode, playback, themePreference })
+  const markup = createScreenMarkup(id, { ...state, darkMode, playback, themePreference, discoverLimit })
   const screenDocument = new DOMParser().parseFromString(markup, 'text/html')
   const targets = [...screenDocument.querySelectorAll('[data-go]')].filter((element, index, elements) =>
     element.dataset.go !== id && elements.findIndex(other => other.dataset.go === element.dataset.go) === index)

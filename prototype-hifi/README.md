@@ -47,8 +47,17 @@ Drop's song-picker rows use the same padding. The selected-song summary keeps
 its artwork and Change button full-size while long titles truncate within the
 remaining space, preventing overflow on narrow phones.
 Discover requests up to 50 personal Spotify top tracks (short-term listening),
-and the entire list scrolls within the screen. Without Spotify top tracks it
-shows all 18 curated demo songs, explicitly not live chart rankings.
+and offers a separate Melody library of 128 unique Spotify tracks, even without
+connecting. Song IDs/titles were verified from Spotify's public album embeds
+(Pure Heroine, Punisher, Rumours, Random Access Memories, After Hours,
+Born To Die, In Rainbows, Discovery, and folklore), alongside the original
+demo songs. This is a curated library, not live Spotify chart rankings.
+Mood assignments are Melody's editorial choices, not Spotify-provided analysis.
+Discover renders 12 songs initially, then adds batches of 12 near the bottom
+of the scroll area. A Load more songs button also supports keyboard access.
+Filtering, searching, switching sources, and returning to Discover reset the
+batch and scroll position. Artwork is resolved only for mounted song rows,
+not for the entire library upfront.
 Mood filters use curated tags only; untagged Spotify tracks are counted and
 hidden while filtering, and return when moods are cleared.
 

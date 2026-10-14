@@ -1,5 +1,5 @@
 import { AV_COLORS, AV_TABS, initialAvatar, avatarLabel, avatarSVG, personAvatarSVG } from './avatars.js';
-import { DISCOVER_MOODS, FIGMA_CHAT, FIGMA_SONG, FIGMA_TRENDING, discoverMoodTags, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
+import { CURATED_TRACKS, DISCOVER_BATCH_SIZE, DISCOVER_MOODS, FIGMA_CHAT, FIGMA_SONG, FIGMA_TRENDING, discoverMoodTags, filterDiscoverTracks, SAMPLE_TRACKS } from './data.js'
 import { accountFrames, accountScreens, accountState } from '../../prototype-react/src/account-flows.js'
 import welcomeLemon from '../../other-files/svgs/Decoration.svg?raw'
 import welcomeMint from '../../other-files/svgs/Decoration-1.svg?raw'
@@ -61,7 +61,8 @@ const FRIENDS = ['rae', 'pip', 'jules', 'noor', 'dmitri', 'sam', 'lou', 'kit'];
 export function initState() {
   return {
     ...accountState(),
-    catalog: SAMPLE_TRACKS,
+    catalog: CURATED_TRACKS,
+    discoverLibrary: false,
     selectedTrackId: FIGMA_SONG.id,
     searchResults: [],
     searchQuery: '',
@@ -112,13 +113,16 @@ export function createScreenMarkup(id, S) {
   const myComments = S.songComments.filter(comment => comment.mine)
   const searching = Boolean(S.searchQuery)
   const discoverSource = searching && S.searchSource === 'spotify' ? S.searchResults :
-    searching ? S.catalog : (S.topTracks.length ? S.topTracks : SAMPLE_TRACKS)
+    searching ? (S.discoverLibrary ? CURATED_TRACKS : S.catalog) : (S.topTracks.length && !S.discoverLibrary ? S.topTracks : CURATED_TRACKS)
   const untaggedTracks = discoverSource.filter(track => !discoverMoodTags(track).length).length
   const discoverTracks = filterDiscoverTracks(
     discoverSource,
     searching && S.searchSource !== 'spotify' ? S.searchQuery : '',
     S.chips,
   )
+  const visibleDiscoverTracks = discoverTracks.slice(0, S.discoverLimit || DISCOVER_BATCH_SIZE)
+  const discoverMore = visibleDiscoverTracks.length < discoverTracks.length
+    ? `<button class="btn block" type="button" data-action="loadDiscover" data-total="${discoverTracks.length}">Load more songs</button>` : ''
   const art = (sz, track = selectedTrack) =>
     `<span class="art" data-artwork="${esc(track.id)}" style="--sz:${sz}px"></span>`
   const play = (key, cls = '', track = selectedTrack) => {
@@ -183,20 +187,22 @@ export function createScreenMarkup(id, S) {
       <div class="head">${pageTitle('Discover')}<p class="lead">Find a song, hear a preview, read what people think.</p></div>
       ${searchBox('disc-q', 'Search songs or artists', 'search')}
       ${!S.spotify ? '<p class="search-note">Search Melody’s demo songs, or connect Spotify from Profile to search its catalog.</p>' : ''}
+      ${!searching && S.topTracks.length ? `<div class="chips" aria-label="Music source"><button class="chip" type="button" data-action="discoverSource" data-key="top" aria-pressed="${!S.discoverLibrary}">Your top tracks</button><button class="chip" type="button" data-action="discoverSource" data-key="curated" aria-pressed="${S.discoverLibrary}">Melody library</button></div>` : ''}
       <div class="chips">${DISCOVER_MOODS.map(c => `<button class="chip" type="button" data-action="chip" data-key="${c}" aria-pressed="${S.chips.has(c)}">${c}</button>`).join('')}</div>
       ${S.chips.size ? '<p class="search-note">Matches any selected mood. Only songs with curated Melody mood tags are included.</p>' : ''}
       ${S.chips.size && untaggedTracks ? `<p class="search-note" role="status">${untaggedTracks} Spotify ${untaggedTracks === 1 ? 'track has' : 'tracks have'} no Melody mood tags and ${untaggedTracks === 1 ? 'is' : 'are'} hidden by these filters. Clear the moods to see all tracks.</p>` : ''}
       ${S.searchError ? `<p class="discover-error" role="alert">${esc(S.searchError)}</p>` : ''}
       ${S.searchLoading ? '<p role="status">Searching Spotify…</p>' : ''}
-      ${searching ? `<section class="sec discover-results" aria-label="Search results"><h2 class="h-sec">${S.searchSource === 'spotify' ? 'Spotify search results' : 'Matching songs in Melody'}</h2>${discoverTracks.length ? `<ul class="rows">${discoverTracks.map(track => songRow(`search-${track.id}`, { track })).join('')}</ul>` : '<p role="status">No songs match your search and selected moods. Try another search or clear a mood.</p>'}<button class="link" type="button" data-action="clearSearch">Clear search</button></section>` : ''}
+      ${searching ? `<section class="sec discover-results" aria-label="Search results"><h2 class="h-sec">${S.searchSource === 'spotify' ? 'Spotify search results' : 'Matching songs in Melody'}</h2>${discoverTracks.length ? `<ul class="rows">${visibleDiscoverTracks.map(track => songRow(`search-${track.id}`, { track })).join('')}</ul>` : '<p role="status">No songs match your search and selected moods. Try another search or clear a mood.</p>'}${discoverMore}<button class="link" type="button" data-action="clearSearch">Clear search</button></section>` : ''}
       <section class="card sh fill talk">
         <h2 class="h-card">Your friends are talking about</h2>
         <button class="talk-item" type="button" data-go="song" data-track-id="${FIGMA_SONG.id}"><b>Ribs · Lorde</b> <span>(3 comments)</span></button>
         <button class="talk-item" type="button" data-go="song" data-track-id="${FIGMA_CHAT.id}"><b>Nights · Frank Ocean</b> <span>(1 comment)</span></button>
       </section>
-      ${!searching ? `<section class="sec discover-results"><h2 class="h-sec">${S.topTracks.length ? 'Your top tracks' : 'Top charts'}</h2>
-        <p class="lead">${S.topTracks.length ? 'Your Spotify favorites from the past few weeks' : 'Melody’s curated demo selection, not live Spotify chart rankings'} · ${discoverTracks.length} ${discoverTracks.length === 1 ? 'song' : 'songs'}</p>
-        ${discoverTracks.length ? `<ol class="rows">${discoverTracks.map((track, index) => songRow(`chart${index + 1}`, { rank: index + 1, track })).join('')}</ol>` : '<p role="status">No songs match these moods. Clear a mood to see more songs.</p>'}
+      ${!searching ? `<section class="sec discover-results"><h2 class="h-sec">${S.topTracks.length && !S.discoverLibrary ? 'Your top tracks' : 'Melody library'}</h2>
+        <p class="lead">${S.topTracks.length && !S.discoverLibrary ? 'Your Spotify favorites from the past few weeks' : 'Melody’s curated selection, not live Spotify chart rankings'} · ${discoverTracks.length} ${discoverTracks.length === 1 ? 'song' : 'songs'}</p>
+        ${discoverTracks.length ? `<ol class="rows">${visibleDiscoverTracks.map((track, index) => songRow(`chart${index + 1}`, { rank: index + 1, track })).join('')}</ol>` : '<p role="status">No songs match these moods. Clear a mood to see more songs.</p>'}
+        <p class="helper" role="status">Showing ${visibleDiscoverTracks.length} of ${discoverTracks.length} songs</p>${discoverMore}
       </section>` : ''}
     </div>${tabbar('discover')}</div>`,
 

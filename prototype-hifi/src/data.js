@@ -1,4 +1,7 @@
+import { CURATED_ALBUM_TRACKS } from './curated-tracks.js'
+
 export const DISCOVER_MOODS = ['Rainy day', 'Gym', 'Road trip', 'Focus', 'Throwbacks']
+export const DISCOVER_BATCH_SIZE = 12
 
 export const FIGMA_CHARTS = [
   { id: '2qSkIjg1o9h3YT9RAgYN75', title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', moods: ['Gym', 'Road trip'] },
@@ -57,8 +60,13 @@ export const SAMPLE_TRACKS = [
   },
 ]
 
+export const CURATED_TRACKS = [
+  ...SAMPLE_TRACKS,
+  ...CURATED_ALBUM_TRACKS.filter(track => !SAMPLE_TRACKS.some(sample => sample.id === track.id)),
+]
+
 export function discoverMoodTags(track) {
-  return track.moods || SAMPLE_TRACKS.find(sample => sample.id === track.id)?.moods || []
+  return track.moods || CURATED_TRACKS.find(sample => sample.id === track.id)?.moods || []
 }
 
 export function filterDiscoverTracks(tracks, query, moods) {
