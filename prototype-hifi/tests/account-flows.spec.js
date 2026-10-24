@@ -6,10 +6,17 @@ registerAccountFlowTests(test, expect)
 test('Signup explains and validates the three-number demo password', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'New here? Create an account' }).click()
+  await expect(page.getByText('Enter any handle you like.')).toBeVisible()
+  await expect(page.getByText('3–20 lowercase letters, numbers, or underscores')).toHaveCount(0)
+
+  await page.getByLabel('Email', { exact: true }).fill('demo@example.com')
+  await page.getByLabel('Demo password', { exact: true }).fill('123')
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await expect(page.locator('.form [role="alert"]')).toHaveText('Enter a handle.')
+
+  await page.getByLabel('Handle', { exact: true }).fill('m')
   await expect(page.getByText('Use exactly 3 numbers (0–9).')).toBeVisible()
 
-  await page.getByLabel('Handle', { exact: true }).fill('demo_music')
-  await page.getByLabel('Email', { exact: true }).fill('demo@example.com')
   await page.getByLabel('Demo password', { exact: true }).fill('12x')
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await expect(page.locator('.form [role="alert"]')).toHaveText('Use exactly 3 numbers for your demo password.')

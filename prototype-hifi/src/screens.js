@@ -420,6 +420,7 @@ export function createScreenMarkup(id, S) {
     themePreference: S.themePreference,
     realSpotify: true,
     shuffleIcon: ic.shuffle,
+    handleHint: 'Enter any handle you like.',
     passwordHint: 'Use exactly 3 numbers (0–9).',
   })
   return id === 'welcome' ? screenMarkup(id) : flows[id] ? flows[id]() : screenMarkup(id);

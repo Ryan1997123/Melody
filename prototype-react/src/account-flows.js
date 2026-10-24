@@ -32,19 +32,20 @@ export function accountAction(name, key, {
   state, mutate, navigate, toast, logout,
   validatePassword = password => password.length >= 8,
   passwordError = 'Use at least 8 characters for your demo password.',
+  validateHandle = handle => {
+    if (!/^[a-z0-9_]{3,20}$/.test(handle)) return 'Use 3–20 lowercase letters, numbers, or underscores for your handle.'
+    if (['rae', 'pip', 'jules', 'noor', 'dmitri', 'sam', 'lou', 'kit'].includes(handle)) return 'That demo handle is taken. Try another one.'
+    return ''
+  },
 }) {
   switch (name) {
     case 'createAccount': {
       const handle = state.inputs['join-handle']?.trim() || ''
       const email = state.inputs['join-email']?.trim() || ''
       const password = state.inputs['join-password'] || ''
-      const error = !/^[a-z0-9_]{3,20}$/.test(handle)
-        ? 'Use 3–20 lowercase letters, numbers, or underscores for your handle.'
-        : ['rae', 'pip', 'jules', 'noor', 'dmitri', 'sam', 'lou', 'kit'].includes(handle)
-          ? 'That demo handle is taken. Try another one.'
-          : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-            ? 'Enter a valid email address.'
-            : !validatePassword(password) ? passwordError : ''
+      const error = validateHandle(handle) ||
+        (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? 'Enter a valid email address.' : '') ||
+        (!validatePassword(password) ? passwordError : '')
       mutate(next => {
         next.signupError = error
         if (!error) {
@@ -92,6 +93,7 @@ export function accountAction(name, key, {
 export function accountScreens(S, {
   esc, sheet, profile, themePreference = 'system', realSpotify = false, shuffleIcon = '↝',
   passwordHint = '',
+  handleHint = '',
 }) {
   const input = (id, label, type = 'text', attributes = '') => `<label class="label" for="${id}">${label}</label><input class="field" id="${id}" type="${type}" value="${esc(S.inputs[id] || '')}" autocomplete="off" ${attributes}>`
   const progress = (step, title) => `<div class="onboarding-progress" aria-label="Step ${step} of 4">${[1, 2, 3, 4].map(n => `<i class="${n <= step ? 'on' : ''}"></i>`).join('')}</div><p class="helper">Step ${step} of 4 · ${title}</p>`
@@ -109,7 +111,7 @@ export function accountScreens(S, {
       <p class="prototype-note">Demo only: no real account is created. Use a made-up password.</p>
       <form class="card sh form" data-form="join" novalidate>
         ${input('join-handle', 'Handle')}
-        <p class="helper available" role="status">${available ? 'Available in this demo' : validHandle ? 'Taken in this demo' : '3–20 lowercase letters, numbers, or underscores'}</p>
+        <p class="helper available" role="status">${handleHint || (available ? 'Available in this demo' : validHandle ? 'Taken in this demo' : '3–20 lowercase letters, numbers, or underscores')}</p>
         ${input('join-email', 'Email', 'email')}${input(
           'join-password',
           'Demo password',

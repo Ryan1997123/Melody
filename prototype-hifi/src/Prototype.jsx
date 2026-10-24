@@ -376,6 +376,7 @@ export default function Prototype() {
       logout,
       validatePassword: password => /^\d{3}$/.test(password),
       passwordError: 'Use exactly 3 numbers for your demo password.',
+      validateHandle: handle => handle ? '' : 'Enter a handle.',
     })) return
     switch (name) {
       case 'theme': changeTheme(darkMode ? 'light' : 'dark'); break
