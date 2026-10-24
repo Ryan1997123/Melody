@@ -368,7 +368,15 @@ export default function Prototype() {
   }, [id, state.msgs])
 
   function action(name, key) {
-    if (accountAction(name, key, { state, mutate, navigate, toast, logout })) return
+    if (accountAction(name, key, {
+      state,
+      mutate,
+      navigate,
+      toast,
+      logout,
+      validatePassword: password => /^\d{3}$/.test(password),
+      passwordError: 'Use exactly 3 numbers for your demo password.',
+    })) return
     switch (name) {
       case 'theme': changeTheme(darkMode ? 'light' : 'dark'); break
       case 'discoverSource': mutate(next => { next.discoverLibrary = key === 'curated' }); break

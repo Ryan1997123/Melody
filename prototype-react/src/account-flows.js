@@ -28,7 +28,11 @@ export function accountState() {
   }
 }
 
-export function accountAction(name, key, { state, mutate, navigate, toast, logout }) {
+export function accountAction(name, key, {
+  state, mutate, navigate, toast, logout,
+  validatePassword = password => password.length >= 8,
+  passwordError = 'Use at least 8 characters for your demo password.',
+}) {
   switch (name) {
     case 'createAccount': {
       const handle = state.inputs['join-handle']?.trim() || ''
@@ -40,7 +44,7 @@ export function accountAction(name, key, { state, mutate, navigate, toast, logou
           ? 'That demo handle is taken. Try another one.'
           : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
             ? 'Enter a valid email address.'
-            : password.length < 8 ? 'Use at least 8 characters for your demo password.' : ''
+            : !validatePassword(password) ? passwordError : ''
       mutate(next => {
         next.signupError = error
         if (!error) {
@@ -85,8 +89,11 @@ export function accountAction(name, key, { state, mutate, navigate, toast, logou
   return true
 }
 
-export function accountScreens(S, { esc, sheet, profile, themePreference = 'system', realSpotify = false, shuffleIcon = '↝' }) {
-  const input = (id, label, type = 'text') => `<label class="label" for="${id}">${label}</label><input class="field" id="${id}" type="${type}" value="${esc(S.inputs[id] || '')}" autocomplete="off">`
+export function accountScreens(S, {
+  esc, sheet, profile, themePreference = 'system', realSpotify = false, shuffleIcon = '↝',
+  passwordHint = '',
+}) {
+  const input = (id, label, type = 'text', attributes = '') => `<label class="label" for="${id}">${label}</label><input class="field" id="${id}" type="${type}" value="${esc(S.inputs[id] || '')}" autocomplete="off" ${attributes}>`
   const progress = (step, title) => `<div class="onboarding-progress" aria-label="Step ${step} of 4">${[1, 2, 3, 4].map(n => `<i class="${n <= step ? 'on' : ''}"></i>`).join('')}</div><p class="helper">Step ${step} of 4 · ${title}</p>`
   const page = (title, step, content) => `<div class="scr"><div class="scroll onboarding"><button class="icon-btn" type="button" data-back aria-label="Back">←</button>${step ? progress(step, title) : ''}<h1 class="h-page">${title}</h1>${content}</div></div>`
   const handle = S.inputs['join-handle'] || ''
@@ -103,7 +110,13 @@ export function accountScreens(S, { esc, sheet, profile, themePreference = 'syst
       <form class="card sh form" data-form="join" novalidate>
         ${input('join-handle', 'Handle')}
         <p class="helper available" role="status">${available ? 'Available in this demo' : validHandle ? 'Taken in this demo' : '3–20 lowercase letters, numbers, or underscores'}</p>
-        ${input('join-email', 'Email', 'email')}${input('join-password', 'Demo password', 'password')}
+        ${input('join-email', 'Email', 'email')}${input(
+          'join-password',
+          'Demo password',
+          'password',
+          passwordHint ? 'maxlength="3" inputmode="numeric" pattern="[0-9]{3}" aria-describedby="join-password-help"' : '',
+        )}
+        ${passwordHint ? `<p class="helper" id="join-password-help">${passwordHint}</p>` : ''}
         <p class="error" role="alert">${esc(S.signupError)}</p>
         <button class="btn pri sh block" type="submit">Create account</button>
       </form>

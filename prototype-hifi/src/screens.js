@@ -413,6 +413,14 @@ export function createScreenMarkup(id, S) {
   }
 
 
-  const flows = accountScreens(S, { esc, sheet, profile: SCREENS.profile, themePreference: S.themePreference, realSpotify: true, shuffleIcon: ic.shuffle })
+  const flows = accountScreens(S, {
+    esc,
+    sheet,
+    profile: SCREENS.profile,
+    themePreference: S.themePreference,
+    realSpotify: true,
+    shuffleIcon: ic.shuffle,
+    passwordHint: 'Use exactly 3 numbers (0–9).',
+  })
   return id === 'welcome' ? screenMarkup(id) : flows[id] ? flows[id]() : screenMarkup(id);
 }

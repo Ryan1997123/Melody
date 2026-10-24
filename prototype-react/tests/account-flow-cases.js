@@ -8,7 +8,8 @@ test('Create account validates inputs, walks all onboarding steps, and updates t
   await expect(page.locator('.form [role="alert"]')).toContainText('3–20')
   await page.getByLabel('Handle', { exact: true }).fill('rae')
   await page.getByLabel('Email', { exact: true }).fill('demo@example.com')
-  await page.getByLabel('Demo password', { exact: true }).fill('not-a-real-password')
+  const demoPassword = await page.locator('#join-password-help').count() ? '123' : 'not-a-real-password'
+  await page.getByLabel('Demo password', { exact: true }).fill(demoPassword)
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await expect(page.locator('.form [role="alert"]')).toContainText('taken')
   await page.getByLabel('Handle', { exact: true }).fill('demo_music')

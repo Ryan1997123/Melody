@@ -3,6 +3,22 @@ import { registerAccountFlowTests } from '../../prototype-react/tests/account-fl
 
 registerAccountFlowTests(test, expect)
 
+test('Signup explains and validates the three-number demo password', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New here? Create an account' }).click()
+  await expect(page.getByText('Use exactly 3 numbers (0–9).')).toBeVisible()
+
+  await page.getByLabel('Handle', { exact: true }).fill('demo_music')
+  await page.getByLabel('Email', { exact: true }).fill('demo@example.com')
+  await page.getByLabel('Demo password', { exact: true }).fill('12x')
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await expect(page.locator('.form [role="alert"]')).toHaveText('Use exactly 3 numbers for your demo password.')
+
+  await page.getByLabel('Demo password', { exact: true }).fill('123')
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await expect(page.locator('#screen')).toHaveAttribute('data-screen', 'check-email')
+})
+
 for (const theme of ['light', 'dark']) {
   test(`Welcome uses the four exported SVG decorations in ${theme} mode`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 })
